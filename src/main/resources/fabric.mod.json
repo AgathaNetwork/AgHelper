@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "aghelper",
+  "version": "${version}",
+  "name": "AgHelper",
+  "description": "Agatha纯净生存辅助模组",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "Ag_0404.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "cn.org.agatha.aghelper.client.AghelperDataGenerator"
+    ],
+    "client": [
+      "cn.org.agatha.aghelper.client.AghelperClient"
+    ],
+    "main": [
+      "cn.org.agatha.aghelper.Aghelper"
+    ]
+  },
+  "mixins": [
+    "aghelper.mixins.json",
+    {
+      "config": "aghelper.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
