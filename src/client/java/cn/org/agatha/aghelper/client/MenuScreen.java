@@ -16,7 +16,12 @@ public class MenuScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(
             Text.of("快捷键设置"),
             button -> this.client.setScreen(new KeybindSettingScreen())
-        ).dimensions(width/2-75, height/2+30, 150, 20).build());
+        ).dimensions(width/2-75, height/2-30, 150, 20).build());
+
+        addDrawableChild(ButtonWidget.builder(
+                Text.of("连接诊断"),
+                button -> this.client.setScreen(new ConnectionDiagnose())
+        ).dimensions(width/2-75, height/2, 150, 20).build());
     }
 
     @Override

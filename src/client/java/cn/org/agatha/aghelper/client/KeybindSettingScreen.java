@@ -15,8 +15,12 @@ public class KeybindSettingScreen extends Screen {
 
     @Override
     protected void init() {
+        addDrawableChild(ButtonWidget.builder(Text.of("返回"), button -> client.setScreen(new MenuScreen()))
+                .dimensions(10, 10, 40, 20)
+                .build());
+
         addDrawableChild(ButtonWidget.builder(
-            Text.of("点击设置键位"),
+            Text.of("打开主菜单界面"),
             button -> isCapturing = true
         ).dimensions(width/2-75, height/2, 150, 20).build());
     }
@@ -24,11 +28,14 @@ public class KeybindSettingScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (isCapturing && keyCode != GLFW.GLFW_KEY_UNKNOWN) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE){
+            isCapturing = false;
+        }
+        if (isCapturing && keyCode != GLFW.GLFW_KEY_UNKNOWN && keyCode != GLFW.GLFW_KEY_ESCAPE) {
             isCapturing = false;
             // 更新按钮文字
             ButtonWidget button = (ButtonWidget) children().get(0);
-            button.setMessage(Text.of("已捕捉键号: " + keyCode + "，扫描码：" + scanCode));
+            button.setMessage(Text.of("已捕捉键号: " + keyCode));
 
             // 更新按键绑定
             AghelperClient.updateKeyBinding(keyCode, "menuShortcutKey", scanCode);
@@ -45,9 +52,9 @@ public class KeybindSettingScreen extends Screen {
         if (isCapturing) {
             context.drawCenteredTextWithShadow(
                 textRenderer, 
-                "按下任意键...", 
+                "按下目标按键",
                 width/2, 
-                height/2 - 30, 
+                height/2 - 30,
                 0xFFFFFF
             );
         }
