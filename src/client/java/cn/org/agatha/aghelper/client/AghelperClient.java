@@ -15,6 +15,7 @@ import java.nio.file.Path;
 public class AghelperClient implements ClientModInitializer {
 
     private static KeyBinding menuKeyBinding;
+    private static KeyBinding autologinKeyBinding;
     private static final String MOD_ID = "aghelper";
     private static final Gson GSON = new Gson();
     private static final Path CONFIG_PATH = Path.of("config/aghelper.json");
@@ -23,7 +24,7 @@ public class AghelperClient implements ClientModInitializer {
     public void onInitializeClient() {
         // 如果配置文件不存在
         if (!CONFIG_PATH.toFile().exists()) {
-            saveConfig(new ConfigData(GLFW.GLFW_KEY_UP, "", ""));
+            saveConfig(new ConfigData(GLFW.GLFW_KEY_UP, "", "", GLFW.GLFW_KEY_ENTER));
         }
         // 读取配置文件
         ConfigData config = loadConfig();
@@ -35,6 +36,11 @@ public class AghelperClient implements ClientModInitializer {
                 "category." + MOD_ID + ".main"
         ));
 
+        autologinKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key." + MOD_ID + ".autologin_key",
+                config.autologinKey(),
+                "category." + MOD_ID + ".main"
+        ));
         // 注册客户端tick监听
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
             if (menuKeyBinding.wasPressed()) {
@@ -47,7 +53,7 @@ public class AghelperClient implements ClientModInitializer {
         try {
             return GSON.fromJson(new FileReader(CONFIG_PATH.toFile()), ConfigData.class);
         } catch (Exception e) {
-            return new ConfigData(GLFW.GLFW_KEY_UP, "", "");
+            return new ConfigData(GLFW.GLFW_KEY_UP, "", "", GLFW.GLFW_KEY_ENTER);
         }
     }
 
@@ -56,12 +62,18 @@ public class AghelperClient implements ClientModInitializer {
         int menuShortcutKey = config.menuShortcutKey;
         String password = config.password;
         String username = config.username;
+        int autologinKey = config.autologinKey;
         if(keyName.equals("menuShortcutKey")){
             menuShortcutKey = keyCode;
             menuKeyBinding.setBoundKey(InputUtil.fromKeyCode(keyCode, scanCode));
             KeyBinding.updateKeysByCode();
         }
-        saveConfig(new ConfigData(menuShortcutKey, password, username));
+        if(keyName.equals("autologinKey")){
+            autologinKey = keyCode;
+            autologinKeyBinding.setBoundKey(InputUtil.fromKeyCode(keyCode, scanCode));
+            KeyBinding.updateKeysByCode();
+        }
+        saveConfig(new ConfigData(menuShortcutKey, password, username, autologinKey));
     }
 
     public static void updateAutologinConfig(String username, String password) {
@@ -69,13 +81,14 @@ public class AghelperClient implements ClientModInitializer {
         int menuShortcutKey = config.menuShortcutKey;
         String oldPassword = config.password;
         String oldUsername = config.username;
+        int autologinKey = config.autologinKey;
         if(username.equals("")){
             username = oldUsername;
         }
         if(password.equals("")){
             password = oldPassword;
         }
-        saveConfig(new ConfigData(menuShortcutKey, password, username));
+        saveConfig(new ConfigData(menuShortcutKey, password, username, autologinKey));
     }
     private static void saveConfig(ConfigData config) {
         try {
@@ -88,5 +101,5 @@ public class AghelperClient implements ClientModInitializer {
         }
     }
 
-    private record ConfigData(int menuShortcutKey, String password, String username) {}
+    private record ConfigData(int menuShortcutKey, String password, String username, int autologinKey) {}
 }

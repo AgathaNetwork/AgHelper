@@ -4,14 +4,12 @@ import com.google.gson.Gson;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
 import java.nio.file.Path;
 import java.io.FileReader;
-import java.io.FileWriter;
 
 public class Autologin extends Screen {
     private static final Gson GSON = new Gson();
@@ -19,13 +17,13 @@ public class Autologin extends Screen {
 
     // 当前设置的自动登录信息
     private String currentUsername;
-    private String currentPassword;
 
     // 用户输入的新密码
     private TextFieldWidget newPasswordField;
+    private ButtonWidget saveButton; // 新增保存按钮字段
 
     protected Autologin() {
-        super(Text.of("自动登录"));
+        super(Text.of("快速登录"));
         loadConfig(); // 加载配置文件中的自动登录信息
     }
 
@@ -42,10 +40,25 @@ public class Autologin extends Screen {
                 .dimensions(10, 10, 40, 20)
                 .build());
 
+        // 创建返回按钮
+        addDrawableChild(ButtonWidget.builder(Text.of("说明"), button -> {})
+                .dimensions(60, 10, 40, 20)
+                .tooltip(Tooltip.of(Text.of("使用保存的游戏ID连接Agatha纯净生存（主服）时才可以执行快速登录。\n必须使用agatha.org.cn进入服务器。")))
+                .build());
+
         // 创建密码输入框，并在初始化时固定坐标和宽度
         newPasswordField = new TextFieldWidget(textRenderer, width / 2 - 15, height / 2 + 30, 150, 20, Text.of("输入该账号密码"));
         newPasswordField.setMaxLength(32); // 设置最大长度为32
         addDrawableChild(newPasswordField);
+
+        // 初始化保存按钮（位置参数暂定，后续在render中更新）
+        saveButton = new ButtonWidget.Builder(Text.of("保存"), button -> {
+            AghelperClient.updateAutologinConfig(playerName, newPasswordField.getText());
+            newPasswordField.setText("");
+            // 更新已保存信息
+            currentUsername = playerName;
+        }).dimensions(0, 0, 100, 20).build();
+        addDrawableChild(saveButton); // 添加到子元素中以便接收事件
     }
 
     @Override
@@ -54,7 +67,7 @@ public class Autologin extends Screen {
         super.render(context, mouseX, mouseY, delta);
 
         // 绘制标题
-        context.drawCenteredTextWithShadow(textRenderer, "自动登录设置", width / 2, height / 2 - 80, 0xFFFFFF);
+        context.drawCenteredTextWithShadow(textRenderer, "快速登录设置", width / 2, height / 2 - 80, 0xFFFFFF);
 
         // 绘制当前设置的自动登录信息（表格形式）
         int tableX = width / 2 - 150; // 表格左上角X坐标
@@ -83,7 +96,6 @@ public class Autologin extends Screen {
         context.drawBorder(tableX, tableY, tableWidth, tableHeight_Input, 0xFF000000);             // 边框绘制
 
         String playerName = MinecraftClient.getInstance().getSession().getUsername();
-        String newPassword = newPasswordField.getText();
 
         labels = new String[]{"用户名", "密码"};
         values = new String[]{playerName}; // 密码部分不再显示文本
@@ -100,10 +112,8 @@ public class Autologin extends Screen {
         // 渲染密码输入框
         newPasswordField.render(context, mouseX, mouseY, delta);
 
-        // 添加保存按钮
-        ButtonWidget saveButton = new ButtonWidget.Builder(Text.of("保存"), button -> {
-            AghelperClient.updateAutologinConfig(playerName, newPassword);
-        }).dimensions(width / 2 - 50, tableY + tableHeight + 25, 100, 20).build();
+        // 更新保存按钮的位置并渲染
+        saveButton.setPosition(width / 2 - 50, tableY + tableHeight_Input - 35);
         saveButton.render(context, mouseX, mouseY, delta);
     }
 
@@ -111,7 +121,6 @@ public class Autologin extends Screen {
         try {
             ConfigData config = GSON.fromJson(new FileReader(CONFIG_PATH.toFile()), ConfigData.class);
             currentUsername = config.username();
-            currentPassword = config.password();
         } catch (Exception e) {
             e.printStackTrace();
         }

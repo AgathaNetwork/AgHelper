@@ -24,7 +24,7 @@ public class MenuScreen extends Screen {
         ).dimensions(width/2-75, height/2, 150, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
-                Text.of("自动登录"),
+                Text.of("快速登录"),
                 button -> this.client.setScreen(new Autologin())
         ).dimensions(width/2-75, height/2+30, 150, 20).build());
     }
