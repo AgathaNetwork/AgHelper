@@ -4,8 +4,11 @@ import com.google.gson.Gson;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.FileReader;
@@ -47,8 +50,42 @@ public class AghelperClient implements ClientModInitializer {
                 client.setScreen(new MenuScreen());
             }
         });
+        ClientTickEvents.START_CLIENT_TICK.register(client -> {
+            if (autologinKeyBinding.wasPressed()) {
+                // 收集自动登录配置
+                performAutologin();
+            }
+        });
     }
 
+    public void performAutologin() {
+        // 获取配置文件
+        ConfigData config = loadConfig();
+        // 获取用户名密码
+        String username = config.username;
+        String password = config.password;
+        if (username.equals("") || password.equals("")){
+            // 聊天框显示内容，调用sendSystemMessage
+            MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("请先设置快速登录密码").formatted(Formatting.RED));
+        }else{
+            // 聊天框显示内容，调用sendSystemMessage
+            if (!MinecraftClient.getInstance().getSession().getUsername().equals(username)) {
+                MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("快速登录设置的游戏ID与实际登录不符").formatted(Formatting.RED));
+            }else{
+                // 判断登录的服务器地址
+                if (MinecraftClient.getInstance().getCurrentServerEntry() == null) {
+                    MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("当前世界不可用").formatted(Formatting.RED));
+                }else{
+                    if (!MinecraftClient.getInstance().getCurrentServerEntry().address.equals("agatha.org.cn")){
+                        MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("请先将登录入口切换至agatha.org.cn").formatted(Formatting.RED));
+                    }else{
+                        MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("正在执行快速登录").formatted(Formatting.AQUA));
+                        MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("login " + password);
+                    }
+                }
+            }
+        }
+    }
     static ConfigData loadConfig() {
         try {
             return GSON.fromJson(new FileReader(CONFIG_PATH.toFile()), ConfigData.class);

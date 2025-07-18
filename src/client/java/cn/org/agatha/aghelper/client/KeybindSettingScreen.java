@@ -8,7 +8,8 @@ import org.lwjgl.glfw.GLFW;
 
 public class KeybindSettingScreen extends Screen {
     private boolean isCapturing = false;
-
+    private String promptText = "请选择设置对象";
+    private String targetName;
     public KeybindSettingScreen() {
         super(Text.of("快捷键设置"));
     }
@@ -20,9 +21,20 @@ public class KeybindSettingScreen extends Screen {
                 .build());
 
         addDrawableChild(ButtonWidget.builder(
-            Text.of("打开主菜单界面"),
-            button -> isCapturing = true
+                Text.of("打开主菜单界面"),
+                button -> {
+                    isCapturing = true;
+                    targetName = "menuShortcutKey";
+                }
         ).dimensions(width/2-75, height/2, 150, 20).build());
+
+        addDrawableChild(ButtonWidget.builder(
+                Text.of("执行快速登录"),
+                button -> {
+                    isCapturing = true;
+                    targetName = "autologinKey";
+                }
+        ).dimensions(width/2-75, height/2 + 35, 150, 20).build());
     }
 
 
@@ -33,12 +45,11 @@ public class KeybindSettingScreen extends Screen {
         }
         if (isCapturing && keyCode != GLFW.GLFW_KEY_UNKNOWN && keyCode != GLFW.GLFW_KEY_ESCAPE) {
             isCapturing = false;
-            // 更新按钮文字
-            ButtonWidget button = (ButtonWidget) children().get(1);
-            button.setMessage(Text.of("已捕捉键号: " + keyCode));
+            // 更新提示文字
+            promptText = "已设置键号：" + keyCode;
 
             // 更新按键绑定
-            AghelperClient.updateKeyBinding(keyCode, "menuShortcutKey", scanCode);
+            AghelperClient.updateKeyBinding(keyCode, targetName, scanCode);
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
@@ -54,6 +65,15 @@ public class KeybindSettingScreen extends Screen {
                 textRenderer, 
                 "按下目标按键",
                 width/2, 
+                height/2 - 30,
+                0xFFFFFF
+            );
+        }
+        else{
+            context.drawCenteredTextWithShadow(
+                textRenderer,
+                promptText,
+                width/2,
                 height/2 - 30,
                 0xFFFFFF
             );
