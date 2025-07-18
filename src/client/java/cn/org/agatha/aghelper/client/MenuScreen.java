@@ -22,6 +22,11 @@ public class MenuScreen extends Screen {
                 Text.of("连接诊断"),
                 button -> this.client.setScreen(new ConnectionDiagnose())
         ).dimensions(width/2-75, height/2, 150, 20).build());
+
+        addDrawableChild(ButtonWidget.builder(
+                Text.of("自动登录"),
+                button -> this.client.setScreen(new Autologin())
+        ).dimensions(width/2-75, height/2+30, 150, 20).build());
     }
 
     @Override

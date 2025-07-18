@@ -34,7 +34,7 @@ public class KeybindSettingScreen extends Screen {
         if (isCapturing && keyCode != GLFW.GLFW_KEY_UNKNOWN && keyCode != GLFW.GLFW_KEY_ESCAPE) {
             isCapturing = false;
             // 更新按钮文字
-            ButtonWidget button = (ButtonWidget) children().get(0);
+            ButtonWidget button = (ButtonWidget) children().get(1);
             button.setMessage(Text.of("已捕捉键号: " + keyCode));
 
             // 更新按键绑定
