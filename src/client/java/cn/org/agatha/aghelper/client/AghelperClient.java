@@ -7,18 +7,23 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.Path;
+
+import static java.lang.Integer.parseInt;
 
 public class AghelperClient implements ClientModInitializer {
 
     private static KeyBinding menuKeyBinding;
     private static KeyBinding autologinKeyBinding;
+    private static KeyBinding createPictureKeyBinding;
     private static final String MOD_ID = "aghelper";
     private static final Gson GSON = new Gson();
     private static final Path CONFIG_PATH = Path.of("config/aghelper.json");
@@ -27,7 +32,7 @@ public class AghelperClient implements ClientModInitializer {
     public void onInitializeClient() {
         // 如果配置文件不存在
         if (!CONFIG_PATH.toFile().exists()) {
-            saveConfig(new ConfigData(GLFW.GLFW_KEY_UP, "", "", GLFW.GLFW_KEY_ENTER));
+            saveConfig(new ConfigData(GLFW.GLFW_KEY_UP, "", "", GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_RIGHT));
         }
         // 读取配置文件
         ConfigData config = loadConfig();
@@ -44,6 +49,13 @@ public class AghelperClient implements ClientModInitializer {
                 config.autologinKey(),
                 "category." + MOD_ID + ".main"
         ));
+
+        createPictureKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "key." + MOD_ID + ".create_picture_key",
+                config.createPictureKey(),
+                "category." + MOD_ID + ".main"
+        ));
+
         // 注册客户端tick监听
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
             if (menuKeyBinding.wasPressed()) {
@@ -54,6 +66,22 @@ public class AghelperClient implements ClientModInitializer {
             if (autologinKeyBinding.wasPressed()) {
                 // 收集自动登录配置
                 performAutologin();
+            }
+        });
+        ClientTickEvents.START_CLIENT_TICK.register(client -> {
+            if (createPictureKeyBinding.wasPressed()) {
+                // 保存图片frameBuffer，客户端截图到文件
+                String filename = "gallery/aghelper_" + System.currentTimeMillis() + ".png";
+                File file = new File(filename);
+                ScreenshotRecorder.saveScreenshot(file, client.getFramebuffer(), (Text message) -> {});
+                // 假设这里有获取x, y, z, worldName, filePath的方法或值
+                // 直接从客户端获取X坐标等信息
+                int x = (int) Math.floor(client.player.getX());
+                int y = (int) Math.floor(client.player.getY());
+                int z = (int) Math.floor(client.player.getZ());
+                String worldName = client.player.getWorld().getRegistryKey().getValue().getPath();
+                
+                client.setScreen(new CreatePicture(filename, x, y, z, worldName));
             }
         });
     }
@@ -90,7 +118,7 @@ public class AghelperClient implements ClientModInitializer {
         try {
             return GSON.fromJson(new FileReader(CONFIG_PATH.toFile()), ConfigData.class);
         } catch (Exception e) {
-            return new ConfigData(GLFW.GLFW_KEY_UP, "", "", GLFW.GLFW_KEY_ENTER);
+            return new ConfigData(GLFW.GLFW_KEY_UP, "", "", GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_RIGHT);
         }
     }
 
@@ -100,6 +128,7 @@ public class AghelperClient implements ClientModInitializer {
         String password = config.password;
         String username = config.username;
         int autologinKey = config.autologinKey;
+        int createPictureKey = config.createPictureKey;
         if(keyName.equals("menuShortcutKey")){
             menuShortcutKey = keyCode;
             menuKeyBinding.setBoundKey(InputUtil.fromKeyCode(keyCode, scanCode));
@@ -110,7 +139,12 @@ public class AghelperClient implements ClientModInitializer {
             autologinKeyBinding.setBoundKey(InputUtil.fromKeyCode(keyCode, scanCode));
             KeyBinding.updateKeysByCode();
         }
-        saveConfig(new ConfigData(menuShortcutKey, password, username, autologinKey));
+        if(keyName.equals("createPictureKey")){
+            createPictureKey = keyCode;
+            createPictureKeyBinding.setBoundKey(InputUtil.fromKeyCode(keyCode, scanCode));
+            KeyBinding.updateKeysByCode();
+        }
+        saveConfig(new ConfigData(menuShortcutKey, password, username, autologinKey, createPictureKey));
     }
 
     public static void updateAutologinConfig(String username, String password) {
@@ -119,13 +153,14 @@ public class AghelperClient implements ClientModInitializer {
         String oldPassword = config.password;
         String oldUsername = config.username;
         int autologinKey = config.autologinKey;
+        int createPictureKey = config.createPictureKey;
         if(username.equals("")){
             username = oldUsername;
         }
         if(password.equals("")){
             password = oldPassword;
         }
-        saveConfig(new ConfigData(menuShortcutKey, password, username, autologinKey));
+        saveConfig(new ConfigData(menuShortcutKey, password, username, autologinKey, createPictureKey));
     }
     private static void saveConfig(ConfigData config) {
         try {
@@ -138,5 +173,5 @@ public class AghelperClient implements ClientModInitializer {
         }
     }
 
-    private record ConfigData(int menuShortcutKey, String password, String username, int autologinKey) {}
+    private record ConfigData(int menuShortcutKey, String password, String username, int autologinKey, int createPictureKey) {}
 }

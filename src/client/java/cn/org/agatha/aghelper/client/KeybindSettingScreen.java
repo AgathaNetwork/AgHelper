@@ -35,6 +35,14 @@ public class KeybindSettingScreen extends Screen {
                     targetName = "autologinKey";
                 }
         ).dimensions(width/2-75, height/2 + 35, 150, 20).build());
+
+        addDrawableChild(ButtonWidget.builder(
+                Text.of("创建照片"),
+                button -> {
+                    isCapturing = true;
+                    targetName = "createPictureKey";
+                }
+        ).dimensions(width/2-75, height/2 + 35, 150, 20).build());
     }
 
 
