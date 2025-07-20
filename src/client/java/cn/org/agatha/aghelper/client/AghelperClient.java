@@ -5,7 +5,9 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.text.Text;
@@ -15,6 +17,7 @@ import org.lwjgl.glfw.GLFW;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Path;
 
 import static java.lang.Integer.parseInt;
@@ -72,15 +75,48 @@ public class AghelperClient implements ClientModInitializer {
             if (createPictureKeyBinding.wasPressed()) {
                 // 保存图片frameBuffer，客户端截图到文件
                 String filename = "gallery/aghelper_" + System.currentTimeMillis() + ".png";
-                File file = new File(filename);
-                ScreenshotRecorder.saveScreenshot(file, client.getFramebuffer(), (Text message) -> {});
-                // 假设这里有获取x, y, z, worldName, filePath的方法或值
-                // 直接从客户端获取X坐标等信息
+
+//                ScreenshotRecorder.saveScreenshot(
+//                        client.runDirectory,
+//                        filename,
+//                        client.getFramebuffer(),
+//                        (text) -> {}
+//                );
+
+                // 确保目录存在
+                File screenshotFile = new File(client.runDirectory, filename);
+                screenshotFile.getParentFile().mkdirs();
+
+                try {
+                    // 获取帧缓冲区
+                    Framebuffer framebuffer = client.getFramebuffer();
+                    int width = framebuffer.textureWidth;
+                    int height = framebuffer.textureHeight;
+
+                    // 创建原生图像
+                    NativeImage nativeImage = new NativeImage(width, height, false);
+
+                    // 绑定帧缓冲区并读取像素
+                    framebuffer.beginRead();
+                    nativeImage.loadFromTextureImage(0, false);
+                    framebuffer.endRead();
+
+                    // 翻转图像（OpenGL坐标系与图像坐标系不同）
+                    nativeImage.mirrorVertically();
+
+                    // 保存文件
+                    nativeImage.writeTo(screenshotFile);
+                    nativeImage.close();
+
+                } catch (IOException e) {
+
+                }
+
+
                 int x = (int) Math.floor(client.player.getX());
                 int y = (int) Math.floor(client.player.getY());
                 int z = (int) Math.floor(client.player.getZ());
                 String worldName = client.player.getWorld().getRegistryKey().getValue().getPath();
-                
                 client.setScreen(new CreatePicture(filename, x, y, z, worldName));
             }
         });
