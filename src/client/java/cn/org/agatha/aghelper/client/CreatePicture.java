@@ -33,6 +33,13 @@ public class CreatePicture extends Screen {
         this.worldName = worldName;
     }
 
+    private void updateConfirmButtonState() {
+        // 检查标题和备注是否都有内容
+        boolean hasTitle = titleContent != null && !titleContent.trim().isEmpty();
+        boolean hasRemark = remarkContent != null && !remarkContent.trim().isEmpty();
+        confirmButton.active = hasTitle && hasRemark;
+    }
+
     @Override
     protected void init() {
         // 给这个创建照片的页面创建一个表单，打开时就要显示，表单应该允许滚动，填写以下字段：图片名称、备注、X、Y、Z、所在世界、光影名称、光影配置
@@ -72,14 +79,20 @@ public class CreatePicture extends Screen {
         titleInput.setText(titleContent);
         titleInput.setPlaceholder(Text.literal("输入标题"));
         // 添加文本变化监听器
-        titleInput.setChangedListener(text -> titleContent = text);
+        titleInput.setChangedListener(text -> {
+            titleContent = text;
+            updateConfirmButtonState();
+        });
         this.addDrawableChild(titleInput);
 
         TextFieldWidget remarkInput = new TextFieldWidget(this.textRenderer, centerX, 110, totalWidth, 20, Text.literal(remarkContent));
         remarkInput.setText(remarkContent);
         remarkInput.setPlaceholder(Text.literal("输入备注"));
         // 添加文本变化监听器
-        remarkInput.setChangedListener(text -> remarkContent = text);
+        remarkInput.setChangedListener(text -> {
+            remarkContent = text;
+            updateConfirmButtonState();
+        });
         this.addDrawableChild(remarkInput);
 
         // 单行输入框
@@ -128,6 +141,9 @@ public class CreatePicture extends Screen {
         confirmButton.setPosition(centerX, 200);
         confirmButton.setWidth(totalWidth);
         this.addDrawableChild(confirmButton);
+
+        // 初始时更新按钮状态
+        updateConfirmButtonState();
     }
 
     @Override

@@ -72,52 +72,55 @@ public class AghelperClient implements ClientModInitializer {
             }
         });
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
+
             if (createPictureKeyBinding.wasPressed()) {
-                // 保存图片frameBuffer，客户端截图到文件
-                String filename = "gallery/aghelper_" + System.currentTimeMillis() + ".png";
 
-//                ScreenshotRecorder.saveScreenshot(
-//                        client.runDirectory,
-//                        filename,
-//                        client.getFramebuffer(),
-//                        (text) -> {}
-//                );
-
-                // 确保目录存在
-                File screenshotFile = new File(client.runDirectory, filename);
-                screenshotFile.getParentFile().mkdirs();
-
-                try {
-                    // 获取帧缓冲区
-                    Framebuffer framebuffer = client.getFramebuffer();
-                    int width = framebuffer.textureWidth;
-                    int height = framebuffer.textureHeight;
-
-                    // 创建原生图像
-                    NativeImage nativeImage = new NativeImage(width, height, false);
-
-                    // 绑定帧缓冲区并读取像素
-                    framebuffer.beginRead();
-                    nativeImage.loadFromTextureImage(0, false);
-                    framebuffer.endRead();
-
-                    // 翻转图像（OpenGL坐标系与图像坐标系不同）
-                    nativeImage.mirrorVertically();
-
-                    // 保存文件
-                    nativeImage.writeTo(screenshotFile);
-                    nativeImage.close();
-
-                } catch (IOException e) {
-
+                // 判断登录的服务器地址
+                if (MinecraftClient.getInstance().getCurrentServerEntry() == null) {
+                    MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("当前世界不可用").formatted(Formatting.RED));
                 }
+                else{
+                    if (!MinecraftClient.getInstance().getCurrentServerEntry().address.equals("agatha.org.cn")){
+                        MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("请先将登录入口切换至agatha.org.cn").formatted(Formatting.RED));
+                    }else{
+                        // 保存图片frameBuffer，客户端截图到文件
+                        String filename = "gallery/aghelper_" + System.currentTimeMillis() + ".png";
 
+                        // 确保目录存在
+                        File screenshotFile = new File(client.runDirectory, filename);
+                        screenshotFile.getParentFile().mkdirs();
 
-                int x = (int) Math.floor(client.player.getX());
-                int y = (int) Math.floor(client.player.getY());
-                int z = (int) Math.floor(client.player.getZ());
-                String worldName = client.player.getWorld().getRegistryKey().getValue().getPath();
-                client.setScreen(new CreatePicture(filename, x, y, z, worldName));
+                        try {
+                            // 获取帧缓冲区
+                            Framebuffer framebuffer = client.getFramebuffer();
+                            int width = framebuffer.textureWidth;
+                            int height = framebuffer.textureHeight;
+
+                            // 创建原生图像
+                            NativeImage nativeImage = new NativeImage(width, height, false);
+
+                            // 绑定帧缓冲区并读取像素
+                            framebuffer.beginRead();
+                            nativeImage.loadFromTextureImage(0, false);
+                            framebuffer.endRead();
+
+                            // 翻转图像（OpenGL坐标系与图像坐标系不同）
+                            nativeImage.mirrorVertically();
+
+                            // 保存文件
+                            nativeImage.writeTo(screenshotFile);
+                            nativeImage.close();
+
+                        } catch (IOException e) {
+
+                        }
+                        int x = (int) Math.floor(client.player.getX());
+                        int y = (int) Math.floor(client.player.getY());
+                        int z = (int) Math.floor(client.player.getZ());
+                        String worldName = client.player.getWorld().getRegistryKey().getValue().getPath();
+                        client.setScreen(new CreatePicture(filename, x, y, z, worldName));
+                    }
+                }
             }
         });
     }
