@@ -4,8 +4,11 @@
   "version": "${version}",
   "name": "AgHelper",
   "description": "Agatha纯净生存辅助模组",
-  "authors": [],
-  "contact": {},
+  "authors": ["Agatha"],
+  "contact": {
+    "homepage": "https://mc.agatha.org.cn/",
+    "sources": "https://github.com/AgathaNetwork/AgHelper"
+  },
   "license": "All-Rights-Reserved",
   "icon": "Ag_0404.png",
   "environment": "client",
