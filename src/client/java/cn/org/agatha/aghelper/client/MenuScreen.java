@@ -27,6 +27,7 @@ public class MenuScreen extends Screen {
                 Text.of("快速登录"),
                 button -> this.client.setScreen(new Autologin())
         ).dimensions(width/2-75, height/2+30, 150, 20).build());
+
     }
 
     @Override

@@ -141,8 +141,8 @@ public class CreatePicture_2 extends Screen {
         }
 
         playerCheckboxes.clear();
-        
-        for (int i = 0; i < onlinePlayers.size(); i++) {
+        int i;
+        for (i = 0; i < onlinePlayers.size(); i++) {
             String playerName = onlinePlayers.get(i);
             boolean isSelected = selectedPlayers.contains(playerName);
 
@@ -164,13 +164,16 @@ public class CreatePicture_2 extends Screen {
             playerCheckboxes.add(checkbox);
             if(i % 2 == 1) currentY += spacing;
         }
-        currentY += spacing;
+        if (onlinePlayers.size() % 2 == 1){
+            currentY += spacing;
+        }
+
 
         // 密码输入框
         passwordField = new TextFieldWidget(textRenderer, centerX, currentY, formWidth, 20, Text.of("密码"));
         passwordField.setPlaceholder(Text.literal("请输入密码"));
         this.addDrawableChild(passwordField);
-        currentY += spacing * 2;
+        currentY += spacing;
 
 
         // 添加报错显示框，文字默认为红色
