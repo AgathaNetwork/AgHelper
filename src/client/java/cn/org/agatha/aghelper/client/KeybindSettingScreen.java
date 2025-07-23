@@ -42,7 +42,7 @@ public class KeybindSettingScreen extends Screen {
                     isCapturing = true;
                     targetName = "createPictureKey";
                 }
-        ).dimensions(width/2-75, height/2 + 35, 150, 20).build());
+        ).dimensions(width/2-75, height/2 + 70, 150, 20).build());
     }
 
 
