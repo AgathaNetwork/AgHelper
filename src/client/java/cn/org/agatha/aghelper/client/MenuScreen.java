@@ -43,7 +43,7 @@ public class MenuScreen extends Screen {
                     50, 50
             );
             // 新增：右下角显示版本号
-            String version = "Version 1.0.0";
+            String version = "©Agatha Version 1.0.0";
             int textWidth = MinecraftClient.getInstance().textRenderer.getWidth(version);
             drawContext.drawText(
                     MinecraftClient.getInstance().textRenderer,
