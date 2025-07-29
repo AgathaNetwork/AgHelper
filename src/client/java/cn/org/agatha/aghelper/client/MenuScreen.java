@@ -7,10 +7,15 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.Text;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.FabricLoader;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Properties;
 
 public class MenuScreen extends Screen {
@@ -61,6 +66,38 @@ public class MenuScreen extends Screen {
                 true
             );
         });
+
+        // 异步执行版本检查
+        new Thread(() -> {
+            // 发送HTTP GET请求，获取URL地址，检查版本号
+            // https://mc.agatha.org.cn/helper/latest
+            try {
+                URL url = new URL("https://mc.agatha.org.cn/helper/latest");
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.connect();
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 200) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        response.append(line);
+                    }
+                    in.close();
+                    String latestVersion = response.toString();
+                    if (!latestVersion.equals(getModVersion())) {
+                        assert client != null;
+                        client.inGameHud.getChatHud().addMessage(Text.literal("检测到新版本，请前往 https://mc.agatha.org.cn/ 下载新版本。为保证接口版本一致，当前版本菜单功能已禁用，您可以继续使用其他功能。").formatted(Formatting.RED));
+                        client.setScreen(null);
+                    }
+                }
+
+            }
+            catch (Exception e) {
+            }
+
+        }).start();
     }
 
 
