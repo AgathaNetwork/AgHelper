@@ -10,7 +10,7 @@
     "sources": "https://github.com/AgathaNetwork/AgHelper"
   },
   "license": "All-Rights-Reserved",
-  "icon": "Ag_0404.png",
+  "icon": "ag_0404.png",
   "environment": "client",
   "entrypoints": {
     "fabric-datagen": [
@@ -33,6 +33,6 @@
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric": "*",
-    "minecraft": "${minecraft_version}"
+    "minecraft": ">=1.21"
   }
 }
