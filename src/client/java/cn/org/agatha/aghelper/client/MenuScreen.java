@@ -40,6 +40,11 @@ public class MenuScreen extends Screen {
                 button -> this.client.setScreen(new Autologin())
         ).dimensions(width/2-75, height/2+30, 150, 20).build());
 
+        addDrawableChild(ButtonWidget.builder(
+                Text.of("背包查看"),
+                button -> this.client.setScreen(new ShareInventory())
+        ).dimensions(width/2-75, height/2+60, 150, 20).build());
+
 
         ScreenEvents.afterRender(this).register((_screen, drawContext, mouseX, mouseY, tickDelta) -> {
 
