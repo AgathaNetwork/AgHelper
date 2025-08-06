@@ -1,14 +1,13 @@
 package cn.org.agatha.aghelper.client;
 
+import cn.org.agatha.aghelper.client.utils.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.text.Text;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -16,10 +15,9 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Properties;
 
 public class MenuScreen extends Screen {
-    protected MenuScreen() {
+    public MenuScreen() {
         super(Text.of("主菜单"));
     }
 
@@ -28,22 +26,27 @@ public class MenuScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(
             Text.of("快捷键设置"),
             button -> this.client.setScreen(new KeybindSettingScreen())
-        ).dimensions(width/2-75, height/2-30, 150, 20).build());
+        ).dimensions(width/2-75, height/2-30, 70, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.of("连接诊断"),
                 button -> this.client.setScreen(new ConnectionDiagnose())
-        ).dimensions(width/2-75, height/2, 150, 20).build());
+        ).dimensions(width/2+5, height/2-30, 70, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.of("快速登录"),
                 button -> this.client.setScreen(new Autologin())
-        ).dimensions(width/2-75, height/2+30, 150, 20).build());
+        ).dimensions(width/2-75, height/2, 70, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.of("背包查看"),
                 button -> this.client.setScreen(new ShareInventory())
-        ).dimensions(width/2-75, height/2+60, 150, 20).build());
+        ).dimensions(width/2+5, height/2, 70, 20).build());
+
+        addDrawableChild(ButtonWidget.builder(
+                Text.of("资源管理"),
+                button -> this.client.setScreen(new Supplies())
+        ).dimensions(width/2-75, height/2+30, 70, 20).build());
 
 
         ScreenEvents.afterRender(this).register((_screen, drawContext, mouseX, mouseY, tickDelta) -> {
