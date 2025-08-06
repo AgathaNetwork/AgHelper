@@ -28,7 +28,7 @@ public class KeybindSettingScreen extends Screen {
                     isCapturing = true;
                     targetName = "menuShortcutKey";
                 }
-        ).dimensions(width/2-75, height/2, 150, 20).build());
+        ).dimensions(width/2-75, height/2 - 50, 150, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.of("执行快速登录"),
@@ -36,7 +36,7 @@ public class KeybindSettingScreen extends Screen {
                     isCapturing = true;
                     targetName = "autologinKey";
                 }
-        ).dimensions(width/2-75, height/2 + 35, 150, 20).build());
+        ).dimensions(width/2-75, height/2 - 20, 150, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.of("创建照片"),
@@ -44,7 +44,7 @@ public class KeybindSettingScreen extends Screen {
                     isCapturing = true;
                     targetName = "createPictureKey";
                 }
-        ).dimensions(width/2-75, height/2 + 70, 150, 20).build());
+        ).dimensions(width/2-75, height/2 + 10, 150, 20).build());
     }
 
 
@@ -75,7 +75,7 @@ public class KeybindSettingScreen extends Screen {
                 textRenderer, 
                 "按下目标按键",
                 width/2, 
-                height/2 - 30,
+                height/2 - 80,
                 0xFFFFFF
             );
         }
@@ -84,7 +84,7 @@ public class KeybindSettingScreen extends Screen {
                 textRenderer,
                 promptText,
                 width/2,
-                height/2 - 30,
+                height/2 - 80,
                 0xFFFFFF
             );
         }
