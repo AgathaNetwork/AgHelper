@@ -1,5 +1,6 @@
-package cn.org.agatha.aghelper.client;
+package cn.org.agatha.aghelper.client.utils;
 
+import cn.org.agatha.aghelper.client.MenuScreen;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -12,7 +13,7 @@ import java.util.Collection;
 import java.util.List;
 
 public class ShareInventory extends Screen {
-    protected ShareInventory() {
+    public ShareInventory() {
         super(Text.of("背包查看"));
     }
     public int textY = 40;

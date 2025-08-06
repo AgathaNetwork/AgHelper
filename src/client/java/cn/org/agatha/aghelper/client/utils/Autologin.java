@@ -1,5 +1,7 @@
-package cn.org.agatha.aghelper.client;
+package cn.org.agatha.aghelper.client.utils;
 
+import cn.org.agatha.aghelper.client.AghelperClient;
+import cn.org.agatha.aghelper.client.MenuScreen;
 import com.google.gson.Gson;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -22,7 +24,7 @@ public class Autologin extends Screen {
     private TextFieldWidget newPasswordField;
     private ButtonWidget saveButton; // 新增保存按钮字段
 
-    protected Autologin() {
+    public Autologin() {
         super(Text.of("快速登录"));
         loadConfig(); // 加载配置文件中的自动登录信息
     }

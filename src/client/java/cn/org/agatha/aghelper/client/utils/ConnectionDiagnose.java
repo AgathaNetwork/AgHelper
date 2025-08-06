@@ -1,12 +1,11 @@
-package cn.org.agatha.aghelper.client;
+package cn.org.agatha.aghelper.client.utils;
 
+import cn.org.agatha.aghelper.client.MenuScreen;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.network.ServerInfo;
 import net.minecraft.text.Text;
-
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.time.LocalDateTime;
@@ -19,7 +18,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets; // 新增导入
 
 public class ConnectionDiagnose extends Screen {
-    protected ConnectionDiagnose() {
+    public ConnectionDiagnose() {
         super(Text.of("连接诊断"));
     }
     // 绘制表格内容

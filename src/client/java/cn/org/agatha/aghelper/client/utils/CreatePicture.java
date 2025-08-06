@@ -1,4 +1,4 @@
-package cn.org.agatha.aghelper.client;
+package cn.org.agatha.aghelper.client.utils;
 
 import com.google.gson.JsonObject;
 import net.minecraft.client.gui.DrawContext;
@@ -24,7 +24,7 @@ public class CreatePicture extends Screen {
     // 添加确定按钮成员变量
     private ButtonWidget confirmButton;
 
-    protected CreatePicture(String filePath, double x, double y, double z, String worldName) {
+    public CreatePicture(String filePath, double x, double y, double z, String worldName) {
         super(Text.literal("创建照片"));
         this.filePath = filePath;
         this.x = x;

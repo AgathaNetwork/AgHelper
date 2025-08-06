@@ -1,4 +1,4 @@
-package cn.org.agatha.aghelper.client;
+package cn.org.agatha.aghelper.client.utils;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -12,9 +12,6 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -28,8 +25,6 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static org.apache.logging.log4j.message.MapMessage.MapFormat.JSON;
 
 public class CreatePicture_2 extends Screen {
     protected String shaderConfig;
