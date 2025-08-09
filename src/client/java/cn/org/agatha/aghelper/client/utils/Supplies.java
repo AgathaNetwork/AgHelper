@@ -7,6 +7,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ScrollableWidget;
+import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 import com.google.gson.Gson;
 import net.minecraft.util.Formatting;
@@ -18,12 +19,14 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Supplies extends Screen {
     public Supplies() {
         super(Text.of("资源管理"));
     }
     private ScrollableWidget scrollableWidget;
+    private ScrollableWidget detailWidget;
     private static final Gson GSON = new Gson();
     public int entryCount = 0;
     public boolean loaded = false;
@@ -31,7 +34,7 @@ public class Supplies extends Screen {
     public List<ListData> producerListData = new ArrayList<>();
     public List<ListData> storageListData = new ArrayList<>();
     public String LIST_API = "https://api-openid.agatha.org.cn/supply/getSupplyList";
-
+    public String idInputInformation = "";
     public int pickedId = -1;
     @Override
     protected void init() {
@@ -39,8 +42,60 @@ public class Supplies extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.of("返回"), button -> client.setScreen(new MenuScreen()))
                 .dimensions(10, 10, 40, 20)
                 .build());
+
+        // 添加一个输入框
+        TextFieldWidget idInput = new TextFieldWidget(textRenderer, 60, 10, width - 150, 20, null);
+        idInput.setPlaceholder(Text.of("输入ID"));
+        idInput.setChangedListener(text -> {
+            if (text.matches("[0-9]*")){
+                this.idInputInformation = text;
+            }
+            else{
+                idInput.setText(this.idInputInformation);
+            }
+        });
+        addDrawableChild(idInput);
+
+        addDrawableChild(ButtonWidget.builder(Text.of("查询"), button -> {
+
+                })
+                .dimensions(width - 80, 10, 30, 20)
+                .build());
+        addDrawableChild(ButtonWidget.builder(Text.of("传送"), button -> {
+
+                })
+                .dimensions(width - 40, 10, 30, 20)
+                .build());
         // 列表组件
         // 创建滚动容器，位置和大小可以根据需要调整
+        this.detailWidget = new ScrollableWidget(
+                140,  // x位置
+                40,  // y位置
+                width - 160,  // 宽度
+                height - 60,
+                Text.literal("")){
+
+            @Override
+            protected void appendClickableNarrations(NarrationMessageBuilder builder) {
+
+            }
+
+            @Override
+            protected int getContentsHeight() {
+                return 0;
+            }
+
+            @Override
+            protected double getDeltaYPerScroll() {
+                return 0;
+            }
+
+            @Override
+            protected void renderContents(DrawContext context, int mouseX, int mouseY, float delta) {
+
+            }
+        };
+
         this.scrollableWidget = new ScrollableWidget(
                 20,  // x位置
                 40,  // y位置
@@ -56,7 +111,10 @@ public class Supplies extends Screen {
             @Override
             protected void renderContents(DrawContext context, int mouseX, int mouseY, float delta) {
                 // 在这里渲染您的内容
-                renderScrollableContent(context, mouseX, mouseY, delta);
+                if (loaded){
+                    renderScrollableContent(context, mouseX, mouseY, delta);
+
+                }
             }
 
             @Override
@@ -72,7 +130,7 @@ public class Supplies extends Screen {
         };
 
         this.addDrawableChild(scrollableWidget);
-
+        this.addDrawableChild(detailWidget);
         // 异步执行，发送 HTTP GET
         new Thread(() -> {
 
@@ -85,7 +143,6 @@ public class Supplies extends Screen {
                     connection.connect();
                     int responseCode = connection.getResponseCode();
                     if (responseCode == 200) {
-                        loaded = true;
                         BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
                         StringBuilder response = new StringBuilder();
                         String line;
@@ -113,8 +170,8 @@ public class Supplies extends Screen {
                                 storageListData.add(data);
                             }
                         }
+                        loaded = true;
                     }
-
                 }
                 catch (Exception e) {
                     e.printStackTrace();
@@ -132,6 +189,7 @@ public class Supplies extends Screen {
         String status;
 
     }
+
     private void renderScrollableContent(DrawContext context, int mouseX, int mouseY, float delta) {
         // 渲染您的滚动内容
         TextRenderer textRenderer = this.textRenderer;
@@ -143,7 +201,17 @@ public class Supplies extends Screen {
         for (int i = 0; i < centerListData.size(); i++) {
             context.drawText(textRenderer,
                     Text.literal(centerListData.get(i).content),
-                    40, i * 12 + offset, 0xFFFFFF, false);
+                    60, i * 12 + offset, 0xFFFFFF, false);
+            if (Objects.equals(centerListData.get(i).status, "1")){
+                context.drawText(textRenderer,
+                        Text.literal(centerListData.get(i).id).formatted(Formatting.GREEN),
+                        40, i * 12 + offset, 0xFFFFFF, false);
+            }
+            else{
+                context.drawText(textRenderer,
+                        Text.literal("×").formatted(Formatting.RED),
+                        40, i * 12 + offset, 0xFFFFFF, false);
+            }
         }
         offset += 12 * centerListData.size() + 20;
         context.drawText(textRenderer,
@@ -152,7 +220,17 @@ public class Supplies extends Screen {
         for (int i = 0; i < producerListData.size(); i++){
             context.drawText(textRenderer,
                     Text.literal(producerListData.get(i).content),
-                    40, i * 12 + offset, 0xFFFFFF, false);
+                    60, i * 12 + offset, 0xFFFFFF, false);
+            if (Objects.equals(producerListData.get(i).status, "1")){
+                context.drawText(textRenderer,
+                        Text.literal(producerListData.get(i).id).formatted(Formatting.GREEN),
+                        40, i * 12 + offset, 0xFFFFFF, false);
+            }
+            else{
+                context.drawText(textRenderer,
+                        Text.literal("×").formatted(Formatting.RED),
+                        40, i * 12 + offset, 0xFFFFFF, false);
+            }
         }
         offset += 12 * producerListData.size() + 20;
         context.drawText(textRenderer,
@@ -161,7 +239,17 @@ public class Supplies extends Screen {
         for (int i = 0; i < storageListData.size(); i++){
             context.drawText(textRenderer,
                     Text.literal(storageListData.get(i).content),
-                    40, i * 12 + offset, 0xFFFFFF, false);
+                    60, i * 12 + offset, 0xFFFFFF, false);
+            if (Objects.equals(storageListData.get(i).status, "1")){
+                context.drawText(textRenderer,
+                        Text.literal(storageListData.get(i).id).formatted(Formatting.GREEN),
+                        40, i * 12 + offset, 0xFFFFFF, false);
+            }
+            else{
+                context.drawText(textRenderer,
+                        Text.literal("×").formatted(Formatting.RED),
+                        40, i * 12 + offset, 0xFFFFFF, false);
+            }
         }
 
     }
