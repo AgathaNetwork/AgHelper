@@ -9,6 +9,7 @@ import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ScrollableWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import com.google.gson.Gson;
 import net.minecraft.util.Formatting;
@@ -30,6 +31,7 @@ public class Supplies extends Screen {
     private ScrollableWidget detailWidget;
     private static final Gson GSON = new Gson();
     public int entryCount = 0;
+    public int detailHeight = 0;
     public boolean loaded = false;
     public List<ListData> centerListData = new ArrayList<>();
     public List<ListData> producerListData = new ArrayList<>();
@@ -153,7 +155,7 @@ public class Supplies extends Screen {
 
             @Override
             protected int getContentsHeight() {
-                return 0;
+                return detailHeight;
             }
 
             @Override
@@ -173,7 +175,22 @@ public class Supplies extends Screen {
                         context.drawText(textRenderer, "名称：" + facilityName, 160,80, 0xFFFFFF, false);
                         context.drawText(textRenderer, "维护者：" + facilityMaintainer, 160,92, 0xFFFFFF, false);
                         context.drawText(textRenderer, "坐标：" + facilityPosition, 160,104, 0xFFFFFF, false);
-                        context.drawText(textRenderer, "备注：" + facilityDescription, 160,116, 0xFFFFFF, false);
+//                        context.drawText(textRenderer, "备注：" + facilityDescription, 160,116, 0xFFFFFF, false);
+                        // 替换原有的备注显示代码
+                        int maxWidth = width - 80;
+                        List<OrderedText> wrappedTexts = textRenderer.wrapLines(Text.literal(facilityDescription), maxWidth);
+
+                        for (int i = 0; i < wrappedTexts.size(); i++) {
+                            context.drawText(textRenderer,
+                                    i == 0 ? "备注：" : "      ",
+                                    160, 116 + i * 12, 0xFFFFFF, false);
+                            context.drawText(textRenderer,
+                                    wrappedTexts.get(i),
+                                    200, 116 + i * 12, 0xFFFFFF, false);
+                        }
+
+                        // 计算控件整体高度
+                        detailHeight = 100 + wrappedTexts.size() * 12;
                     }
                     else{
                         context.drawText(textRenderer, "暂无数据", 160,60, 0xFFFFFF, false);
