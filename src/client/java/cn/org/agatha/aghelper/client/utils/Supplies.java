@@ -34,8 +34,16 @@ public class Supplies extends Screen {
     public List<ListData> producerListData = new ArrayList<>();
     public List<ListData> storageListData = new ArrayList<>();
     public String LIST_API = "https://api-openid.agatha.org.cn/supply/getSupplyList";
+    public String DETAIL_API = "https://api-openid.agatha.org.cn/supply/getSupplyDetail?id=";
     public String idInputInformation = "";
+
     public int pickedId = -1;
+    public int hasInfo = 0;
+    public String facilityPosition = "";
+    public String facilityName = "";
+    public String facilityMaintainer = "";
+    public String facilityDescription = "";
+
     @Override
     protected void init() {
         // 添加一个返回按钮
@@ -57,7 +65,42 @@ public class Supplies extends Screen {
         addDrawableChild(idInput);
 
         addDrawableChild(ButtonWidget.builder(Text.of("查询"), button -> {
+                    new Thread(() -> {
+                        pickedId = Integer.parseInt(this.idInputInformation);
+                        try {
+                            URL url = new URL(DETAIL_API + this.idInputInformation);
+                            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                            connection.setRequestMethod("GET");
+                            connection.connect();
+                            int responseCode = connection.getResponseCode();
+                            if (responseCode == 200) {
+                                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
+                                StringBuilder response = new StringBuilder();
+                                String line;
+                                while ((line = in.readLine()) != null) {
+                                    response.append(line);
+                                }
+                                in.close();
+                                String json = response.toString();
+                                // 处理JSON数据
+                                DetailData detailData = GSON.fromJson(json, DetailData.class);
 
+                                if (detailData.status.equals("1")){
+                                    this.facilityDescription = detailData.message;
+                                    this.facilityName = detailData.content;
+                                    this.facilityMaintainer = detailData.maintainer;
+                                    this.facilityPosition = detailData.world + " " + detailData.x + ", " + detailData.y + ", " + detailData.z;
+                                    this.hasInfo = 1;
+                                }
+                                else{
+                                    this.hasInfo = 0;
+                                }
+                            }
+                        }
+                        catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }).start();
                 })
                 .dimensions(width - 80, 10, 30, 20)
                 .build());
@@ -92,7 +135,22 @@ public class Supplies extends Screen {
 
             @Override
             protected void renderContents(DrawContext context, int mouseX, int mouseY, float delta) {
+                if (pickedId == -1){
+                    context.drawText(textRenderer, "请输入ID并点击查看", 160,60, 0xFFFFFF, false);
+                }
+                else{
+                    if (hasInfo == 1){
+                        context.drawText(textRenderer, "ID：" + pickedId, 160,60, 0xFFFFFF, false);
 
+                        context.drawText(textRenderer, "名称：" + facilityName, 160,80, 0xFFFFFF, false);
+                        context.drawText(textRenderer, "维护者：" + facilityMaintainer, 160,92, 0xFFFFFF, false);
+                        context.drawText(textRenderer, "坐标：" + facilityPosition, 160,104, 0xFFFFFF, false);
+                        context.drawText(textRenderer, "备注：" + facilityDescription, 160,116, 0xFFFFFF, false);
+                    }
+                    else{
+                        context.drawText(textRenderer, "暂无数据", 160,60, 0xFFFFFF, false);
+                    }
+                }
             }
         };
 
@@ -188,6 +246,32 @@ public class Supplies extends Screen {
         String type;
         String status;
 
+    }
+    private static class DetailData {
+        String maintainer;
+        String world;
+        String x;
+        String y;
+        String z;
+        String efficiency;
+        String content;
+        String type;
+        String confirmation;
+        String message;
+        String status;
+//        {
+//            "status": "1",
+//                "maintainer": "HELP_FRESH",
+//                "world": "world",
+//                "x": "-2048",
+//                "y": "68",
+//                "z": "-2208",
+//                "efficiency": "150/h",
+//                "content": "鸡肉生产机器",
+//                "type": "producer",
+//                "confirmation": "2024年7月26日",
+//                "message": "无"
+//        }
     }
 
     private void renderScrollableContent(DrawContext context, int mouseX, int mouseY, float delta) {
