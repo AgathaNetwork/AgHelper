@@ -1,6 +1,7 @@
 package cn.org.agatha.aghelper.client.utils;
 
 import cn.org.agatha.aghelper.client.MenuScreen;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -89,7 +90,17 @@ public class Supplies extends Screen {
                                     this.facilityDescription = detailData.message;
                                     this.facilityName = detailData.content;
                                     this.facilityMaintainer = detailData.maintainer;
-                                    this.facilityPosition = detailData.world + " " + detailData.x + ", " + detailData.y + ", " + detailData.z;
+                                    String worldName = "未知世界";
+                                    if (detailData.world.equals("world")){
+                                        worldName = "主世界";
+                                    }
+                                    else if (detailData.world.equals("world_the_end")){
+                                        worldName = "末地";
+                                    }
+                                    else if (detailData.world.equals("world_nether")){
+                                        worldName = "下界";
+                                    }
+                                    this.facilityPosition = worldName + " " + detailData.x + ", " + detailData.y + ", " + detailData.z;
                                     this.hasInfo = 1;
                                 }
                                 else{
@@ -105,7 +116,24 @@ public class Supplies extends Screen {
                 .dimensions(width - 80, 10, 30, 20)
                 .build());
         addDrawableChild(ButtonWidget.builder(Text.of("传送"), button -> {
-
+            int id = Integer.parseInt(idInput.getText());
+            MinecraftClient.getInstance().player.networkHandler.sendChatCommand("supply " + id);
+            // 遍历三个分类组
+            centerListData.forEach(data -> {
+                if (data.id.equals(String.valueOf(id))) {
+                    client.setScreen(null);
+                }
+            });
+            producerListData.forEach(data -> {
+                if (data.id.equals(String.valueOf(id))) {
+                    client.setScreen(null);
+                }
+            });
+            storageListData.forEach(data -> {
+                if (data.id.equals(String.valueOf(id))) {
+                    client.setScreen(null);
+                }
+            });
                 })
                 .dimensions(width - 40, 10, 30, 20)
                 .build());
