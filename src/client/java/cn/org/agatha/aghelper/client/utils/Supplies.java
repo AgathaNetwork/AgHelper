@@ -166,7 +166,7 @@ public class Supplies extends Screen {
             @Override
             protected void renderContents(DrawContext context, int mouseX, int mouseY, float delta) {
                 if (pickedId == -1){
-                    context.drawText(textRenderer, "请输入ID并点击查看", 160,60, 0xFFFFFF, false);
+                    context.drawText(textRenderer, "请输入ID并点击查询", 160,60, 0xFFFFFF, false);
                 }
                 else{
                     if (hasInfo == 1){
