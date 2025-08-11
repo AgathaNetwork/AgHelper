@@ -1,10 +1,14 @@
 package cn.org.agatha.aghelper.client;
 
+import cn.org.agatha.aghelper.client.elements.MenuRectWidget;
 import cn.org.agatha.aghelper.client.utils.*;
+import com.llamalad7.mixinextras.sugar.Share;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.text.Text;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.util.Formatting;
@@ -23,31 +27,92 @@ public class MenuScreen extends Screen {
 
     @Override
     protected void init() {
-        addDrawableChild(ButtonWidget.builder(
-            Text.of("快捷键设置"),
-            button -> this.client.setScreen(new KeybindSettingScreen())
-        ).dimensions(width/2-75, height/2-30, 70, 20).build());
+//        addDrawableChild(ButtonWidget.builder(
+//            Text.of("快捷键设置"),
+//            button -> this.client.setScreen(new KeybindSettingScreen())
+//        ).dimensions(width/2-75, height/2-30, 70, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.of("连接诊断"),
-                button -> this.client.setScreen(new ConnectionDiagnose())
-        ).dimensions(width/2+5, height/2-30, 70, 20).build());
+//        addDrawableChild(ButtonWidget.builder(
+//                Text.of("连接诊断"),
+//                button -> this.client.setScreen(new ConnectionDiagnose())
+//        ).dimensions(width/2+5, height/2-30, 70, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.of("快速登录"),
-                button -> this.client.setScreen(new Autologin())
-        ).dimensions(width/2-75, height/2, 70, 20).build());
+//        addDrawableChild(ButtonWidget.builder(
+//                Text.of("快速登录"),
+//                button -> this.client.setScreen(new Autologin())
+//        ).dimensions(width/2-75, height/2, 70, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.of("背包查看"),
-                button -> this.client.setScreen(new ShareInventory())
-        ).dimensions(width/2+5, height/2, 70, 20).build());
+//        addDrawableChild(ButtonWidget.builder(
+//                Text.of("背包查看"),
+//                button -> this.client.setScreen(new ShareInventory())
+//        ).dimensions(width/2+5, height/2, 70, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
-                Text.of("资源管理"),
-                button -> this.client.setScreen(new Supplies())
-        ).dimensions(width/2-75, height/2+30, 70, 20).build());
+//        addDrawableChild(ButtonWidget.builder(
+//                Text.of("资源管理"),
+//                button -> this.client.setScreen(new Supplies())
+//        ).dimensions(width/2-75, height/2+30, 70, 20).build());
 
+        ItemStack diamondStack = new ItemStack(Items.DIAMOND);
+
+        MenuRectWidget KeybindSettingButton = new MenuRectWidget(
+                width/2-75, height/2-30, 70, 20,
+                Text.literal("快捷键设置"),
+                diamondStack,
+                0xFF44FF44, // 绿色背景
+                () -> {
+                    assert this.client != null;
+                    this.client.setScreen(new KeybindSettingScreen());
+                }
+        );
+        addDrawableChild(KeybindSettingButton);
+
+        MenuRectWidget ConnectionDiagnoseButton = new MenuRectWidget(
+                width/2+5, height/2-30, 70, 20,
+                Text.literal("连接诊断"),
+                diamondStack,
+                0xFF44FF44, // 绿色背景
+                () -> {
+                    assert this.client != null;
+                    this.client.setScreen(new ConnectionDiagnose());
+                }
+        );
+        addDrawableChild(ConnectionDiagnoseButton);
+
+        MenuRectWidget AutologinButton = new MenuRectWidget(
+                width/2-75, height/2, 70, 20,
+                Text.literal("快速登录"),
+                diamondStack,
+                0xFF44FF44, // 绿色背景
+                () -> {
+                    assert this.client != null;
+                    this.client.setScreen(new Autologin());
+                }
+        );
+        addDrawableChild(AutologinButton);
+
+        MenuRectWidget ShareInventoryButton = new MenuRectWidget(
+                width/2+5, height/2, 70, 20,
+                Text.literal("背包查看"),
+                diamondStack,
+                0xFF44FF44, // 绿色背景
+                () -> {
+                    assert this.client != null;
+                    this.client.setScreen(new ShareInventory());
+                }
+        );
+        addDrawableChild(ShareInventoryButton);
+
+        MenuRectWidget SuppliesButton = new MenuRectWidget(
+                width/2-75, height/2+30, 70, 20,
+                Text.literal("资源管理"),
+                diamondStack,
+                0xFF44FF44, // 绿色背景
+                () -> {
+                    assert this.client != null;
+                    this.client.setScreen(new Supplies());
+                }
+        );
+        addDrawableChild(SuppliesButton);
 
         ScreenEvents.afterRender(this).register((_screen, drawContext, mouseX, mouseY, tickDelta) -> {
 
