@@ -2,12 +2,10 @@ package cn.org.agatha.aghelper.client;
 
 import cn.org.agatha.aghelper.client.elements.MenuRectWidget;
 import cn.org.agatha.aghelper.client.utils.*;
-import com.llamalad7.mixinextras.sugar.Share;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
-import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.network.ServerAddress;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.item.ItemStack;
