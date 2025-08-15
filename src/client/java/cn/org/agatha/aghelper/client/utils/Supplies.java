@@ -38,15 +38,16 @@ public class Supplies extends Screen {
     public List<ListData> storageListData = new ArrayList<>();
     public String LIST_API = "https://api-openid.agatha.org.cn/supply/getSupplyList";
     public String DETAIL_API = "https://api-openid.agatha.org.cn/supply/getSupplyDetail?id=";
-    public String idInputInformation = "";
 
-    public int pickedId = -1;
     public int hasInfo = 0;
+    public List<String> nameList = new ArrayList<>();
+    public int facilityId = -1;
     public String facilityPosition = "";
     public String facilityName = "";
     public String facilityMaintainer = "";
     public String facilityDescription = "";
 
+    public ButtonWidget teleportButton;
     @Override
     protected void init() {
         // 添加一个返回按钮
@@ -54,91 +55,59 @@ public class Supplies extends Screen {
                 .dimensions(10, 10, 40, 20)
                 .build());
 
+
         // 添加一个输入框
-        TextFieldWidget idInput = new TextFieldWidget(textRenderer, 60, 10, width - 150, 20, null);
-        idInput.setPlaceholder(Text.of("输入ID"));
+        TextFieldWidget idInput = new TextFieldWidget(textRenderer, 60, 10, width - 130, 20, null);
+        idInput.setPlaceholder(Text.of("输入ID或名称进行搜索"));
         idInput.setChangedListener(text -> {
-            if (text.matches("[0-9]*")){
-                this.idInputInformation = text;
+            // 判断是否是正整数
+
+            if (isPositiveInteger(text)){
+                // 输入了ID，按ID进行查询
+                queryData(Integer.parseInt(text));
+            }
+            else if (text.isEmpty()){
+                hasInfo = 0;
             }
             else{
-                idInput.setText(this.idInputInformation);
+                // 模糊搜索
+                int selectedId = -1;
+                List<String> nameList = new ArrayList<>();
+                for (ListData data : centerListData) {
+                    if (data.content.contains(text)) {
+                        nameList.add(data.content);
+                        selectedId = Integer.parseInt(data.id);
+                    }
+                }
+                for (ListData data : producerListData){
+                    if (data.content.contains(text)) {
+                        nameList.add(data.content);
+                        selectedId = Integer.parseInt(data.id);
+                    }
+                }
+                for (ListData data : storageListData){
+                    if (data.content.contains(text)) {
+                        nameList.add(data.content);
+                        selectedId = Integer.parseInt(data.id);
+                    }
+                }
+                this.nameList = nameList;
+                if (nameList.size() > 1) {
+                    // 有多个候选选项
+                    this.hasInfo = -1;
+                }
+                else if (nameList.isEmpty()) {
+                    // 没有候选选项
+                    this.hasInfo = 0;
+                }
+                else {
+                    this.hasInfo = 2;
+                    queryData(selectedId);
+                }
             }
         });
         addDrawableChild(idInput);
 
-        addDrawableChild(ButtonWidget.builder(Text.of("查询"), button -> {
-                    new Thread(() -> {
-                        pickedId = Integer.parseInt(this.idInputInformation);
-                        try {
-                            URL url = new URL(DETAIL_API + this.idInputInformation);
-                            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                            connection.setRequestMethod("GET");
-                            connection.connect();
-                            int responseCode = connection.getResponseCode();
-                            if (responseCode == 200) {
-                                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
-                                StringBuilder response = new StringBuilder();
-                                String line;
-                                while ((line = in.readLine()) != null) {
-                                    response.append(line);
-                                }
-                                in.close();
-                                String json = response.toString();
-                                // 处理JSON数据
-                                DetailData detailData = GSON.fromJson(json, DetailData.class);
-
-                                if (detailData.status.equals("1")){
-                                    this.facilityDescription = detailData.message;
-                                    this.facilityName = detailData.content;
-                                    this.facilityMaintainer = detailData.maintainer;
-                                    String worldName = "未知世界";
-                                    if (detailData.world.equals("world")){
-                                        worldName = "主世界";
-                                    }
-                                    else if (detailData.world.equals("world_the_end")){
-                                        worldName = "末地";
-                                    }
-                                    else if (detailData.world.equals("world_nether")){
-                                        worldName = "下界";
-                                    }
-                                    this.facilityPosition = worldName + " " + detailData.x + ", " + detailData.y + ", " + detailData.z;
-                                    this.hasInfo = 1;
-                                }
-                                else{
-                                    this.hasInfo = 0;
-                                }
-                            }
-                        }
-                        catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }).start();
-                })
-                .dimensions(width - 80, 10, 30, 20)
-                .build());
-        addDrawableChild(ButtonWidget.builder(Text.of("传送"), button -> {
-            int id = Integer.parseInt(idInput.getText());
-            MinecraftClient.getInstance().player.networkHandler.sendChatCommand("supply " + id);
-            // 遍历三个分类组
-            centerListData.forEach(data -> {
-                if (data.id.equals(String.valueOf(id))) {
-                    client.setScreen(null);
-                }
-            });
-            producerListData.forEach(data -> {
-                if (data.id.equals(String.valueOf(id))) {
-                    client.setScreen(null);
-                }
-            });
-            storageListData.forEach(data -> {
-                if (data.id.equals(String.valueOf(id))) {
-                    client.setScreen(null);
-                }
-            });
-                })
-                .dimensions(width - 40, 10, 30, 20)
-                .build());
         // 列表组件
         // 创建滚动容器，位置和大小可以根据需要调整
         this.detailWidget = new ScrollableWidget(
@@ -165,36 +134,50 @@ public class Supplies extends Screen {
 
             @Override
             protected void renderContents(DrawContext context, int mouseX, int mouseY, float delta) {
-                if (pickedId == -1){
-                    context.drawText(textRenderer, "请输入ID并点击查询", 160,60, 0xFFFFFF, false);
+                MinecraftClient.getInstance().execute(() -> {
+                    teleportButton.active = false;
+                });
+                if (hasInfo == 1){
+
+                    MinecraftClient.getInstance().execute(() -> {
+                        teleportButton.active = true;
+                    });
+
+                    context.drawText(textRenderer, "ID：" + facilityId, 160,60, 0xFFFFFF, false);
+
+                    context.drawText(textRenderer, "名称：" + facilityName, 160,80, 0xFFFFFF, false);
+                    context.drawText(textRenderer, "维护者：" + facilityMaintainer, 160,92, 0xFFFFFF, false);
+                    context.drawText(textRenderer, "坐标：" + facilityPosition, 160,104, 0xFFFFFF, false);
+                    // 替换原有的备注显示代码
+                    int maxWidth = width - 80;
+                    List<OrderedText> wrappedTexts = textRenderer.wrapLines(Text.literal(facilityDescription), maxWidth);
+
+                    for (int i = 0; i < wrappedTexts.size(); i++) {
+                        context.drawText(textRenderer,
+                                i == 0 ? "备注：" : "      ",
+                                160, 116 + i * 12, 0xFFFFFF, false);
+                        context.drawText(textRenderer,
+                                wrappedTexts.get(i),
+                                200, 116 + i * 12, 0xFFFFFF, false);
+                    }
+
+                    // 计算控件整体高度
+                    detailHeight = 100 + wrappedTexts.size() * 12;
                 }
-                else{
-                    if (hasInfo == 1){
-                        context.drawText(textRenderer, "ID：" + pickedId, 160,60, 0xFFFFFF, false);
-
-                        context.drawText(textRenderer, "名称：" + facilityName, 160,80, 0xFFFFFF, false);
-                        context.drawText(textRenderer, "维护者：" + facilityMaintainer, 160,92, 0xFFFFFF, false);
-                        context.drawText(textRenderer, "坐标：" + facilityPosition, 160,104, 0xFFFFFF, false);
-//                        context.drawText(textRenderer, "备注：" + facilityDescription, 160,116, 0xFFFFFF, false);
-                        // 替换原有的备注显示代码
-                        int maxWidth = width - 80;
-                        List<OrderedText> wrappedTexts = textRenderer.wrapLines(Text.literal(facilityDescription), maxWidth);
-
-                        for (int i = 0; i < wrappedTexts.size(); i++) {
-                            context.drawText(textRenderer,
-                                    i == 0 ? "备注：" : "      ",
-                                    160, 116 + i * 12, 0xFFFFFF, false);
-                            context.drawText(textRenderer,
-                                    wrappedTexts.get(i),
-                                    200, 116 + i * 12, 0xFFFFFF, false);
-                        }
-
-                        // 计算控件整体高度
-                        detailHeight = 100 + wrappedTexts.size() * 12;
+                else if (hasInfo == 2){
+                    context.drawText(textRenderer, "查询进行中", 160,60, 0xFFFFFF, false);
+                    detailHeight = 80;
+                }
+                else if (hasInfo == 0){
+                    context.drawText(textRenderer, "暂无数据", 160,60, 0xFFFFFF, false);
+                    detailHeight = 80;
+                }
+                else if (hasInfo == -1){
+                    context.drawText(textRenderer, "有多个候选项，请继续填写：", 160,60, 0xFFFFFF, false);
+                    for (int i = 0; i < nameList.size(); i++){
+                        context.drawText(textRenderer, nameList.get(i), 160,80 + i * 12, 0xFFFFFF, false);
                     }
-                    else{
-                        context.drawText(textRenderer, "暂无数据", 160,60, 0xFFFFFF, false);
-                    }
+                    detailHeight = 80 + nameList.size() * 12 + 20;
                 }
             }
         };
@@ -216,7 +199,6 @@ public class Supplies extends Screen {
                 // 在这里渲染您的内容
                 if (loaded){
                     renderScrollableContent(context, mouseX, mouseY, delta);
-
                 }
             }
 
@@ -234,6 +216,17 @@ public class Supplies extends Screen {
 
         this.addDrawableChild(scrollableWidget);
         this.addDrawableChild(detailWidget);
+
+        // 添加一个传送按钮
+        teleportButton = ButtonWidget.builder(Text.of("传送"), button -> {
+                    MinecraftClient.getInstance().player.networkHandler.sendChatCommand("supply " + facilityId);
+                    client.setScreen(null);
+                })
+                .dimensions(width - 60, 10, 40, 20)
+                .build();
+        teleportButton.active = false;
+        this.addDrawableChild(teleportButton);
+
         // 异步执行，发送 HTTP GET
         new Thread(() -> {
 
@@ -304,21 +297,60 @@ public class Supplies extends Screen {
         String confirmation;
         String message;
         String status;
-//        {
-//            "status": "1",
-//                "maintainer": "HELP_FRESH",
-//                "world": "world",
-//                "x": "-2048",
-//                "y": "68",
-//                "z": "-2208",
-//                "efficiency": "150/h",
-//                "content": "鸡肉生产机器",
-//                "type": "producer",
-//                "confirmation": "2024年7月26日",
-//                "message": "无"
-//        }
     }
+    // 判断字符串是否是正整数的方法
+    public static boolean isPositiveInteger(String s) {
+        // 检查字符串非空且只包含数字，并且不以0开头（多位数），并且大于0
+        return s != null && !s.isEmpty() && s.matches("\\d+") && (s.length() == 1 || !s.startsWith("0"));
+    }
+    public void queryData(int id){
+        this.facilityId = id;
+        new Thread(() -> {
+            try {
+                URL url = new URL(DETAIL_API + id);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.connect();
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 200) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        response.append(line);
+                    }
+                    in.close();
+                    String json = response.toString();
+                    // 处理JSON数据
+                    DetailData detailData = GSON.fromJson(json, DetailData.class);
 
+                    if (detailData.status.equals("1")){
+                        this.facilityDescription = detailData.message;
+                        this.facilityName = detailData.content;
+                        this.facilityMaintainer = detailData.maintainer;
+                        String worldName = "未知世界";
+                        if (detailData.world.equals("world")){
+                            worldName = "主世界";
+                        }
+                        else if (detailData.world.equals("world_the_end")){
+                            worldName = "末地";
+                        }
+                        else if (detailData.world.equals("world_nether")){
+                            worldName = "下界";
+                        }
+                        this.facilityPosition = worldName + " " + detailData.x + ", " + detailData.y + ", " + detailData.z;
+                        this.hasInfo = 1;
+                    }
+                    else{
+                        this.hasInfo = 0;
+                    }
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
     private void renderScrollableContent(DrawContext context, int mouseX, int mouseY, float delta) {
         // 渲染您的滚动内容
         TextRenderer textRenderer = this.textRenderer;
