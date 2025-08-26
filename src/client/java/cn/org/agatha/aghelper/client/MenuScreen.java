@@ -105,6 +105,7 @@ public class MenuScreen extends Screen {
                     new ItemStack(Items.ELYTRA),
                     0xFF696969, // 绿色背景
                     () -> {
+                        MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("quit 正在退出主服");
                         // 首先退出当前服务器
                         MinecraftClient.getInstance().disconnect();
                         // 然后连接到测试服
@@ -124,6 +125,7 @@ public class MenuScreen extends Screen {
                     new ItemStack(Items.ELYTRA),
                     0xFF696969, // 绿色背景
                     () -> {
+                        MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("quit 正在退出测试服");
                         // 首先退出当前服务器
                         MinecraftClient.getInstance().disconnect();
                         // 然后连接到测试服
