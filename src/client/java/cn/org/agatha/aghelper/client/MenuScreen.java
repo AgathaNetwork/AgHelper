@@ -105,14 +105,7 @@ public class MenuScreen extends Screen {
                     new ItemStack(Items.ELYTRA),
                     0xFF696969, // 绿色背景
                     () -> {
-                        MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("quit 正在退出主服");
-                        // 首先退出当前服务器
-                        MinecraftClient.getInstance().disconnect();
-                        // 然后连接到测试服
-                        ServerInfo serverInfo = new ServerInfo("Agatha纯净生存测试服", "doris.agatha.org.cn", ServerInfo.ServerType.OTHER);
-                        // 连接到服务器
-                        ConnectScreen.connect(null, client, ServerAddress.parse("doris.agatha.org.cn"), serverInfo,  false, null);
-
+                        MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("safequit DMS_QUITTING_MAIN_SERVER");
                     }
             );
             addDrawableChild(switchServerButton);
@@ -125,14 +118,7 @@ public class MenuScreen extends Screen {
                     new ItemStack(Items.ELYTRA),
                     0xFF696969, // 绿色背景
                     () -> {
-                        MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("quit 正在退出测试服");
-                        // 首先退出当前服务器
-                        MinecraftClient.getInstance().disconnect();
-                        // 然后连接到测试服
-                        ServerInfo serverInfo = new ServerInfo("Agatha纯净生存", "agatha.org.cn", ServerInfo.ServerType.OTHER);
-                        // 连接到服务器
-                        ConnectScreen.connect(null, client, ServerAddress.parse("agatha.org.cn"), serverInfo,  false, null);
-
+                        MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("safequit DMS_QUITTING_DORIS");
                     }
             );
             addDrawableChild(switchServerButton);
