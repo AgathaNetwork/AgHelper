@@ -42,6 +42,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation files("lib/minecraft-clientOnly-c453a9ae23-1.21-net.fabricmc.yarn.1_21.1.21+build.9-v2.jar")
 
 }
 
