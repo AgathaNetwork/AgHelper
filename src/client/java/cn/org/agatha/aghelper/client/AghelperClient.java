@@ -6,6 +6,8 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
@@ -18,11 +20,17 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
 
 public class AghelperClient implements ClientModInitializer {
 
@@ -32,9 +40,14 @@ public class AghelperClient implements ClientModInitializer {
     private static final String MOD_ID = "aghelper";
     private static final Gson GSON = new Gson();
     private static final Path CONFIG_PATH = Path.of("config/aghelper.json");
+    private static final String VERSION_CHECK_URL = "https://mc.agatha.org.cn/helper/latest";
+    private static final String DOWNLOAD_URL_TEMPLATE = "https://mc.agatha.org.cn/helper/AgHelper-%s.jar";
 
     @Override
     public void onInitializeClient() {
+        // 检查更新
+        checkForUpdates();
+
         // 如果配置文件不存在
         if (!CONFIG_PATH.toFile().exists()) {
             saveConfig(new ConfigData(GLFW.GLFW_KEY_UP, "", "", GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_RIGHT));
@@ -132,6 +145,148 @@ public class AghelperClient implements ClientModInitializer {
                 }
             }
         });
+    }
+
+    /**
+     * 检查更新并在后台执行更新过程
+     */
+    private void checkForUpdates() {
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 获取当前版本
+                String currentVersion = getCurrentModVersion();
+                logMessage("当前版本: " + currentVersion);
+                
+                // 获取最新版本
+                String latestVersion = getLatestVersion();
+                logMessage("最新版本: " + latestVersion);
+                
+                // 如果版本不匹配，执行更新
+                if (!currentVersion.equals(latestVersion)) {
+                    logMessage("发现新版本，准备更新...");
+                    updateMod(currentVersion, latestVersion);
+                } else {
+                    logMessage("当前已是最新版本");
+                }
+            } catch (Exception e) {
+                logMessage("检查更新时出错: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+
+    /**
+     * 记录日志消息
+     * @param message 要记录的消息
+     */
+    private void logMessage(String message) {
+        System.out.println(message);
+    }
+
+    /**
+     * 获取当前模组版本
+     * @return 当前版本字符串
+     */
+    private String getCurrentModVersion() {
+        Optional<ModContainer> modContainer = FabricLoader.getInstance().getModContainer(MOD_ID);
+        if (modContainer.isPresent()) {
+            return modContainer.get().getMetadata().getVersion().getFriendlyString();
+        }
+        return "unknown";
+    }
+
+    /**
+     * 从远程服务器获取最新版本号
+     * @return 最新版本字符串
+     * @throws IOException 网络异常
+     */
+    private String getLatestVersion() throws IOException {
+        URL url = new URL(VERSION_CHECK_URL);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setConnectTimeout(5000); // 5秒连接超时
+        connection.setReadTimeout(5000);    // 5秒读取超时
+        
+        int responseCode = connection.getResponseCode();
+        logMessage("版本检查响应码: " + responseCode);
+        
+        try (BufferedReader reader = new BufferedReader(new java.io.InputStreamReader(connection.getInputStream()))) {
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            return response.toString().trim();
+        }
+    }
+
+    /**
+     * 更新模组到最新版本
+     * @param currentVersion 当前版本
+     * @param latestVersion 最新版本
+     */
+    private void updateMod(String currentVersion, String latestVersion) {
+        try {
+            MinecraftClient.getInstance().execute(() -> {
+                MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(
+                    Text.literal("[AgHelper] 发现新版本 " + latestVersion + "，正在后台更新...")
+                         .formatted(Formatting.YELLOW));
+            });
+            
+            // 构造下载URL
+            String downloadUrl = String.format(DOWNLOAD_URL_TEMPLATE, latestVersion);
+            logMessage("下载URL: " + downloadUrl);
+            
+            // 下载新版本
+            Path modsDir = FabricLoader.getInstance().getGameDir().resolve("mods");
+            Path newModFile = modsDir.resolve("AgHelper-" + latestVersion + ".jar");
+            logMessage("新版本将保存到: " + newModFile.toString());
+            
+            downloadFile(downloadUrl, newModFile);
+            logMessage("新版本下载完成");
+            
+            // 获取当前版本文件路径并显示更新通知
+            Path currentModFile = getCurrentModContainerFile();
+            logMessage("当前模组文件: " + (currentModFile != null ? currentModFile.toString() : "未知"));
+            
+            // 显示更新通知窗口
+            if (currentModFile != null) {
+                MinecraftClient.getInstance().execute(() -> {
+                    MinecraftClient.getInstance().setScreen(new UpdateNotificationScreen(currentModFile, latestVersion));
+                });
+            }
+
+        } catch (Exception e) {
+            logMessage("更新失败: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 获取当前模组的文件路径
+     * @return 当前模组文件的路径
+     */
+    private Path getCurrentModContainerFile() {
+        Optional<ModContainer> modContainer = FabricLoader.getInstance().getModContainer(MOD_ID);
+        if (modContainer.isPresent()) {
+            logMessage("函数获取当前模组文件: " + modContainer.get().getOrigin().getPaths().getFirst().toString());
+            return Path.of(modContainer.get().getOrigin().getPaths().getFirst().toString());
+        }
+        return null;
+    }
+
+    /**
+     * 下载文件
+     * @param urlString 下载URL
+     * @param destination 目标路径
+     * @throws IOException 下载异常
+     */
+    private void downloadFile(String urlString, Path destination) throws IOException {
+        URL url = new URL(urlString);
+        try (ReadableByteChannel rbc = Channels.newChannel(url.openStream());
+             FileOutputStream fos = new FileOutputStream(destination.toFile())) {
+            fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+        }
     }
 
     public void performAutologin() {
