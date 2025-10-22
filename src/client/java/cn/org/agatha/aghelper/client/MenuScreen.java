@@ -20,6 +20,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Objects;
 
 public class MenuScreen extends Screen {
     public MenuScreen() {
@@ -34,6 +35,8 @@ public class MenuScreen extends Screen {
         ItemStack bookShelfStack = new ItemStack(Items.BOOKSHELF);
         ItemStack compassStack = new ItemStack(Items.COMPASS);
         ItemStack targetStack = new ItemStack(Items.TARGET);
+        ItemStack playerHeadStack = new ItemStack(Items.PLAYER_HEAD);
+        ItemStack paperStack = new ItemStack(Items.PAPER);
 
         MenuRectWidget KeybindSettingButton = new MenuRectWidget(
                 width/2-75, height/2-30, 70, 20,
@@ -94,6 +97,31 @@ public class MenuScreen extends Screen {
                 }
         );
         addDrawableChild(SuppliesButton);
+
+        MenuRectWidget OnlineStatisticsButton = new MenuRectWidget(
+                width/2+5, height/2+30, 70, 20,
+                Text.literal("在线统计"),
+                playerHeadStack,
+                0xFF696969, // 绿色背景
+                () -> {
+                    assert this.client != null;
+                    // 客户端执行/stat
+                    Objects.requireNonNull(MinecraftClient.getInstance().getNetworkHandler()).sendChatCommand("stat");
+                }
+        );
+        addDrawableChild(OnlineStatisticsButton);
+
+        MenuRectWidget MaterialsButton = new MenuRectWidget(
+                width/2-75, height/2+60, 70, 20,
+                Text.literal("材料列表"),
+                paperStack,
+                0xFF696969, // 绿色背景
+                () -> {
+                    assert this.client != null;
+
+                }
+        );
+        addDrawableChild(MaterialsButton);
 
         // 判断是不是主服或测试服
         String thisServerIp = MinecraftClient.getInstance().getCurrentServerEntry().address;
