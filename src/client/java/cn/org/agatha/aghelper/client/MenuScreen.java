@@ -118,7 +118,7 @@ public class MenuScreen extends Screen {
                 0xFF696969, // 绿色背景
                 () -> {
                     assert this.client != null;
-
+                    this.client.setScreen(new MaterialsDash());
                 }
         );
         addDrawableChild(MaterialsButton);
