@@ -174,7 +174,7 @@ public class MaterialsList extends Screen {
         } else {
             // 渲染材料列表
             int startY = 50; // 向下移动50 (原来30 + 新增20)
-            int itemWidth = width - 80;
+            int itemWidth = width - 35; // 扩展宽度以覆盖完整区域
             
             for (int i = 0; i < materials.size(); i++) {
                 MaterialItem material = materials.get(i);
@@ -186,7 +186,7 @@ public class MaterialsList extends Screen {
                 context.fill(30, itemY, itemWidth, itemY + ITEM_HEIGHT, backgroundColor);
                 
                 // 绘制边框，向右移动30
-                context.drawBorder(30, itemY, itemWidth, ITEM_HEIGHT, 0xFFFFFFFF);
+                context.drawBorder(30, itemY, itemWidth - 30, ITEM_HEIGHT, 0xFFFFFFFF);
                 
                 // 绘制文本，向右移动30
                 String displayText = String.format("%s (%s)", material.name, material.uploader);
