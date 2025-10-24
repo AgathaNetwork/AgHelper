@@ -173,32 +173,32 @@ public class MaterialsList extends Screen {
                 (width - textRenderer.getWidth(errorMessage)) / 2, 10, 0xFF5555);
         } else {
             // 渲染材料列表
-            int startY = 0;
+            int startY = 50; // 向下移动50 (原来30 + 新增20)
             int itemWidth = width - 80;
             
             for (int i = 0; i < materials.size(); i++) {
                 MaterialItem material = materials.get(i);
                 int itemY = startY + i * (ITEM_HEIGHT + ITEM_SPACING);
                 
-                // 绘制列表项背景
+                // 绘制列表项背景，向右移动30
                 int backgroundColor = isMouseOverItem(mouseX, mouseY, itemY) ? 
                     0x80AAAAAA : 0x80222222;
-                context.fill(0, itemY, itemWidth, itemY + ITEM_HEIGHT, backgroundColor);
+                context.fill(30, itemY, itemWidth, itemY + ITEM_HEIGHT, backgroundColor);
                 
-                // 绘制边框
-                context.drawBorder(0, itemY, itemWidth, ITEM_HEIGHT, 0xFFFFFFFF);
+                // 绘制边框，向右移动30
+                context.drawBorder(30, itemY, itemWidth, ITEM_HEIGHT, 0xFFFFFFFF);
                 
-                // 绘制文本
-                String displayText = String.format("%s (%s)", material.id, material.name, material.uploader);
-                context.drawTextWithShadow(textRenderer, displayText, 5, itemY + 10, 0xFFFFFF);
+                // 绘制文本，向右移动30
+                String displayText = String.format("%s (%s)", material.name, material.uploader);
+                context.drawTextWithShadow(textRenderer, displayText, 35, itemY + 10, 0xFFFFFF);
             }
         }
     }
 
     private boolean isMouseOverItem(int mouseX, int mouseY, int itemY) {
-        // 考虑滚动偏移量
+        // 考虑滚动偏移量和位置调整
         int adjustedMouseY = (int) (mouseY + currentScrollY);
-        return mouseX >= 0 && mouseX <= width - 80 && 
+        return mouseX >= 30 && mouseX <= width - 50 && 
                adjustedMouseY >= itemY && adjustedMouseY <= itemY + ITEM_HEIGHT;
     }
 
@@ -216,15 +216,15 @@ public class MaterialsList extends Screen {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!loading && errorMessage == null) {
-            // 检查是否点击了滚动区域内的项目
-            if (mouseX >= 20 && mouseX <= width - 20 && mouseY >= 60 && mouseY <= height - 20) {
+            // 检查是否点击了滚动区域内的项目，考虑位置调整
+            if (mouseX >= 50 && mouseX <= width - 20 && mouseY >= 80 && mouseY <= height - 20) {
                 // 让滚动部件先处理点击事件
                 if (scrollableWidget.mouseClicked(mouseX, mouseY, button)) {
                     return true;
                 }
                 
-                // 计算点击的项目索引
-                double adjustedMouseY = mouseY - 60 + currentScrollY;
+                // 计算点击的项目索引，考虑位置调整
+                double adjustedMouseY = mouseY - 90 + currentScrollY; // 调整为新的起始位置
                 int index = (int) (adjustedMouseY / (ITEM_HEIGHT + ITEM_SPACING));
                 
                 if (index >= 0 && index < materials.size()) {
