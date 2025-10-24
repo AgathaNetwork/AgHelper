@@ -117,7 +117,7 @@ public class MaterialsList extends Screen {
                 int responseCode = connection.getResponseCode();
                 if (responseCode == 200) {
                     InputStream inputStream = connection.getInputStream();
-                    InputStreamReader reader = new InputStreamReader(inputStream);
+                    InputStreamReader reader = new InputStreamReader(inputStream, "UTF-8");
                     
                     JsonObject response = JsonParser.parseReader(reader).getAsJsonObject();
                     if (response.has("data")) {
