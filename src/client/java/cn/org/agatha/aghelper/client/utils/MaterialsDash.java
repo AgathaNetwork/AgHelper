@@ -547,10 +547,13 @@ public class MaterialsDash extends Screen {
             }
             context.drawTextWithShadow(textRenderer, displayText, 25, itemY + 10, textColor);
             
-            // 显示占用状态信息（仅对未完成的条目）
+            // 显示占用状态信息（从右侧开始计算位置）
             if (material.done != 1 && material.occupied != null && !material.occupied.isEmpty()) {
                 String occupiedByText = "被 " + material.occupied + " 领取";
-                context.drawTextWithShadow(textRenderer, occupiedByText, width - 220, itemY + 10, 0xFFFF00); // 黄色显示
+                int occupiedTextWidth = textRenderer.getWidth(occupiedByText);
+                // 从右侧按钮的左侧开始计算位置，确保不会重叠
+                int occupiedTextX = width - 150 - occupiedTextWidth - 5;
+                context.drawTextWithShadow(textRenderer, occupiedByText, occupiedTextX, itemY + 10, 0xFFFF00); // 黄色显示
             }
         }
     }
