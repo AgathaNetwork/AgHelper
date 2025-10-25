@@ -22,7 +22,9 @@ import java.util.List;
 public class OccupiedItemsHUD implements HudRenderCallback {
     private static final OccupiedItemsHUD INSTANCE = new OccupiedItemsHUD();
     private final List<String> occupiedItems = new ArrayList<>();
-    private boolean loaded = false;
+    private int materialId = -1;
+    private long lastUpdate = 0;
+    private static final long UPDATE_INTERVAL = 1000; // 1秒更新间隔
 
     private OccupiedItemsHUD() {
     }
@@ -31,9 +33,18 @@ public class OccupiedItemsHUD implements HudRenderCallback {
         return INSTANCE;
     }
 
-    public void loadOccupiedItemsForMaterialList(int materialId) {
-        // 清空当前列表
-        occupiedItems.clear();
+    public void setMaterialId(int materialId) {
+        this.materialId = materialId;
+        this.lastUpdate = 0; // 重置更新时间，确保立即更新
+    }
+
+    private void updateOccupiedItems() {
+        long currentTime = System.currentTimeMillis();
+        if (materialId == -1 || currentTime - lastUpdate < UPDATE_INTERVAL) {
+            return;
+        }
+        
+        lastUpdate = currentTime;
         
         // 在后台线程中加载数据
         Thread loaderThread = new Thread(() -> {
@@ -62,13 +73,15 @@ public class OccupiedItemsHUD implements HudRenderCallback {
                             
                             // 在主线程中更新UI
                             MinecraftClient.getInstance().execute(() -> {
+                                // 清空当前列表
+                                occupiedItems.clear();
+                                
                                 for (MaterialDetailItem item : loadedMaterials) {
-                                    // 检查物品是否被当前用户领取
-                                    if (item.occupied != null && item.occupied.equals(playerName)) {
-                                        addOccupiedItem(item.name + " *" + item.count);
+                                    // 检查物品是否被当前用户领取且未完成
+                                    if (item.occupied != null && item.occupied.equals(playerName) && item.done != 1) {
+                                        occupiedItems.add(item.name + " *" + item.count);
                                     }
                                 }
-                                loaded = true;
                             });
                         }
                     }
@@ -94,6 +107,9 @@ public class OccupiedItemsHUD implements HudRenderCallback {
 
     @Override
     public void onHudRender(DrawContext context, RenderTickCounter tickCounter) {
+        // 更新已领取的项目
+        updateOccupiedItems();
+        
         if (!occupiedItems.isEmpty()) {
             MinecraftClient client = MinecraftClient.getInstance();
             int screenWidth = client.getWindow().getScaledWidth();
@@ -102,7 +118,7 @@ public class OccupiedItemsHUD implements HudRenderCallback {
             // 显示领取的物品
             int yPosition = screenHeight - 40;
             for (int i = 0; i < occupiedItems.size() && i < 5; i++) { // 最多显示5个物品
-                String text = "已领取: " + occupiedItems.get(i);
+                String text = occupiedItems.get(i);
                 int textWidth = client.textRenderer.getWidth(text);
                 int xPosition = (screenWidth - textWidth) / 2;
                 
