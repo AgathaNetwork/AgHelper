@@ -25,6 +25,14 @@ public class OccupiedItemsHUD implements HudRenderCallback {
     private int materialId = -1;
     private long lastUpdate = 0;
     private static final long UPDATE_INTERVAL = 1000; // 1秒更新间隔
+    
+    // HUD位置相关变量
+    private int hudX = 100;
+    private int hudY = -40; // 相对于屏幕底部的偏移量
+    private boolean isDragging = false;
+    private int dragOffsetX = 0;
+    private int dragOffsetY = 0;
+    private boolean positionInitialized = false;
 
     private OccupiedItemsHUD() {
     }
@@ -105,6 +113,67 @@ public class OccupiedItemsHUD implements HudRenderCallback {
         occupiedItems.remove(itemName);
     }
 
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && !occupiedItems.isEmpty()) { // 左键点击
+            MinecraftClient client = MinecraftClient.getInstance();
+            int screenWidth = client.getWindow().getScaledWidth();
+            int screenHeight = client.getWindow().getScaledHeight();
+            
+            // 初始化位置（第一次渲染时设置默认位置）
+            if (!positionInitialized) {
+                hudX = screenWidth / 2;
+                hudY = screenHeight - 40;
+                positionInitialized = true;
+            }
+            
+            // 检查是否点击在HUD上
+            int yPosition = hudY;
+            for (int i = 0; i < occupiedItems.size() && i < 5; i++) {
+                String text = "已领取: " + occupiedItems.get(i);
+                int textWidth = client.textRenderer.getWidth(text);
+                int xPosition = hudX - textWidth / 2;
+                
+                // 检查鼠标是否在文字区域内
+                if (mouseX >= xPosition - 3 && mouseX <= xPosition + textWidth + 3 && 
+                    mouseY >= yPosition - 1 && mouseY <= yPosition + 9) {
+                    isDragging = true;
+                    dragOffsetX = (int) (mouseX - hudX);
+                    dragOffsetY = (int) (mouseY - yPosition);
+                    return true;
+                }
+                
+                yPosition -= 12;
+            }
+        }
+        return false;
+    }
+
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 0) {
+            isDragging = false;
+            return true;
+        }
+        return false;
+    }
+
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (isDragging && button == 0) {
+            hudX = (int) (mouseX - dragOffsetX);
+            hudY = (int) (mouseY - dragOffsetY);
+            return true;
+        }
+        return false;
+    }
+    
+    public boolean mouseDragged(double mouseX, double mouseY, int button) {
+        if (isDragging && button == 0) {
+            hudX = (int) (mouseX - dragOffsetX);
+            hudY = (int) (mouseY - dragOffsetY);
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public void onHudRender(DrawContext context, RenderTickCounter tickCounter) {
         // 更新已领取的项目
@@ -114,13 +183,20 @@ public class OccupiedItemsHUD implements HudRenderCallback {
             MinecraftClient client = MinecraftClient.getInstance();
             int screenWidth = client.getWindow().getScaledWidth();
             int screenHeight = client.getWindow().getScaledHeight();
-
+            
+            // 初始化位置
+            if (!positionInitialized) {
+                hudX = screenWidth / 2;
+                hudY = screenHeight - 40;
+                positionInitialized = true;
+            }
+            
             // 显示领取的物品
-            int yPosition = screenHeight - 40;
+            int yPosition = hudY;
             for (int i = 0; i < occupiedItems.size() && i < 5; i++) { // 最多显示5个物品
-                String text = occupiedItems.get(i);
+                String text = "已领取: " + occupiedItems.get(i);
                 int textWidth = client.textRenderer.getWidth(text);
-                int xPosition = (screenWidth - textWidth) / 2;
+                int xPosition = hudX - textWidth / 2;
                 
                 // 绘制带背景的文字
                 context.fill(xPosition - 3, yPosition - 1, xPosition + textWidth + 3, yPosition + 9, 

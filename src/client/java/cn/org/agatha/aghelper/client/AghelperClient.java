@@ -8,6 +8,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.client.MinecraftClient;
@@ -51,6 +53,21 @@ public class AghelperClient implements ClientModInitializer {
     public void onInitializeClient() {
         // 注册HUD
         HudRenderCallback.EVENT.register(OccupiedItemsHUD.getInstance());
+        
+        // 注册鼠标事件监听器
+        ScreenEvents.BEFORE_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+            ScreenMouseEvents.beforeMouseClick(screen).register((screen1, mouseX, mouseY, button) -> 
+                OccupiedItemsHUD.getInstance().mouseClicked(mouseX, mouseY, button)
+            );
+            
+            ScreenMouseEvents.afterMouseRelease(screen).register((screen1, mouseX, mouseY, button) -> 
+                OccupiedItemsHUD.getInstance().mouseReleased(mouseX, mouseY, button)
+            );
+            
+            ScreenMouseEvents.beforeMouseClick(screen).register((screen1, mouseX, mouseY, button) ->
+                OccupiedItemsHUD.getInstance().mouseDragged(mouseX, mouseY, button)
+            );
+        });
         
         // 检查更新
         checkForUpdates();
