@@ -117,15 +117,20 @@ public class MaterialsList extends Screen {
                         
                         for (int i = 0; i < dataArray.size(); i++) {
                             JsonObject item = dataArray.get(i).getAsJsonObject();
-                            MaterialItem material = new MaterialItem(
-                                item.get("id").getAsInt(),
-                                item.get("uploader").getAsString(),
-                                item.get("name").getAsString(),
-                                item.get("description").getAsString(),
-                                item.get("done").getAsInt(),
-                                item.get("upload_time").getAsLong()
-                            );
-                            loadedMaterials.add(material);
+                            int done = item.get("done").getAsInt();
+                            
+                            // 如果done=1，不显示已完成的条目
+                            if (done != 1) {
+                                MaterialItem material = new MaterialItem(
+                                    item.get("id").getAsInt(),
+                                    item.get("uploader").getAsString(),
+                                    item.get("name").getAsString(),
+                                    item.get("description").getAsString(),
+                                    done,
+                                    item.get("upload_time").getAsLong()
+                                );
+                                loadedMaterials.add(material);
+                            }
                         }
                         
                         // 在主线程中更新UI
