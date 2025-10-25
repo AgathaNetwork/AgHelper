@@ -145,6 +145,30 @@ public class MaterialsDash extends Screen {
             
             addDrawableChild(itemButton);
             itemButtons.add(itemButton);
+            
+            // 如果物品未完成且未被占用，则添加"领取"按钮
+            if (material.done != 1 && (material.occupied == null || material.occupied.isEmpty())) {
+                ButtonWidget occupyButton = ButtonWidget.builder(
+                    Text.of("领取"),
+                    button -> onOccupyButtonClick(material, button))
+                    .dimensions(width - 150, itemY + 5, 60, 20)
+                    .build();
+                
+                addDrawableChild(occupyButton);
+                itemButtons.add(occupyButton);
+            } 
+            // 如果物品被当前用户占用，则添加"取消领取"按钮
+            else if (material.occupied != null && !material.occupied.isEmpty() && 
+                     material.occupied.equals(MinecraftClient.getInstance().getSession().getUsername())) {
+                ButtonWidget unoccupyButton = ButtonWidget.builder(
+                    Text.of("取消领取"),
+                    button -> onUnoccupyButtonClick(material, button))
+                    .dimensions(width - 150, itemY + 5, 60, 20)
+                    .build();
+                
+                addDrawableChild(unoccupyButton);
+                itemButtons.add(unoccupyButton);
+            }
         }
     }
     
@@ -156,6 +180,16 @@ public class MaterialsDash extends Screen {
             // 设置为完成
             setItemDone(material, button);
         }
+    }
+    
+    private void onOccupyButtonClick(MaterialDetailItem material, ButtonWidget button) {
+        // 领取任务
+        setItemOccupied(material, button);
+    }
+    
+    private void onUnoccupyButtonClick(MaterialDetailItem material, ButtonWidget button) {
+        // 取消领取任务
+        setItemUnoccupied(material, button);
     }
     
     private void setItemDone(MaterialDetailItem material, ButtonWidget button) {
@@ -227,6 +261,94 @@ public class MaterialsDash extends Screen {
                         material.doneby = "";
                         button.setMessage(Text.of("完成"));
                         button.active = true;
+                    });
+                } else {
+                    throw new IOException("HTTP Error: " + responseCode);
+                }
+            } catch (Exception e) {
+                client.execute(() -> {
+                    button.setMessage(Text.of("重试"));
+                    button.active = true;
+                    // 可以添加错误提示
+                });
+            }
+        });
+        
+        apiThread.start();
+    }
+    
+    private void setItemOccupied(MaterialDetailItem material, ButtonWidget button) {
+        button.active = false;
+        button.setMessage(Text.of("处理中..."));
+        
+        Thread apiThread = new Thread(() -> {
+            try {
+                String playerName = MinecraftClient.getInstance().getSession().getUsername();
+                // 对URL中的参数进行UTF-8编码
+                String encodedName = java.net.URLEncoder.encode(material.name, "UTF-8");
+                URL url = new URL("https://api-materials.agatha.org.cn/mod/setOccupied?id=" + AghelperClient.selectedMaterialId + "&name=" + encodedName + "&user=" + playerName);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 200) {
+                    InputStream inputStream = connection.getInputStream();
+                    InputStreamReader reader = new InputStreamReader(inputStream, "UTF-8");
+                    
+                    JsonObject response = JsonParser.parseReader(reader).getAsJsonObject();
+                    if (response.has("user")) {
+                        String user = response.get("user").getAsString();
+                        
+                        // 在主线程中更新UI
+                        client.execute(() -> {
+                            material.occupied = user;
+                            button.setMessage(Text.of("取消领取"));
+                            button.active = true;
+                            // 重新添加按钮以更新按钮状态
+                            updateButtons();
+                        });
+                    }
+                } else {
+                    throw new IOException("HTTP Error: " + responseCode);
+                }
+            } catch (Exception e) {
+                client.execute(() -> {
+                    button.setMessage(Text.of("重试"));
+                    button.active = true;
+                    // 可以添加错误提示
+                });
+            }
+        });
+        
+        apiThread.start();
+    }
+    
+    private void setItemUnoccupied(MaterialDetailItem material, ButtonWidget button) {
+        button.active = false;
+        button.setMessage(Text.of("处理中..."));
+        
+        Thread apiThread = new Thread(() -> {
+            try {
+                String playerName = MinecraftClient.getInstance().getSession().getUsername();
+                // 对URL中的参数进行UTF-8编码
+                String encodedName = java.net.URLEncoder.encode(material.name, "UTF-8");
+                URL url = new URL("https://api-materials.agatha.org.cn/mod/setUnOccupied?id=" + AghelperClient.selectedMaterialId + "&name=" + encodedName + "&user=" + playerName);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 200) {
+                    // 在主线程中更新UI
+                    client.execute(() -> {
+                        material.occupied = "";
+                        button.setMessage(Text.of("领取"));
+                        button.active = true;
+                        // 重新添加按钮以更新按钮状态
+                        updateButtons();
                     });
                 } else {
                     throw new IOException("HTTP Error: " + responseCode);
@@ -412,7 +534,12 @@ public class MaterialsDash extends Screen {
                 displayText = "§m" + displayText; // Minecraft中的删除线格式代码
             }
             context.drawTextWithShadow(textRenderer, displayText, 25, itemY + 10, textColor);
-
+            
+            // 显示占用状态信息
+            if (material.occupied != null && !material.occupied.isEmpty()) {
+                String occupiedByText = "被 " + material.occupied + " 领取";
+                context.drawTextWithShadow(textRenderer, occupiedByText, width - 220, itemY + 10, 0xFFFF00); // 黄色显示
+            }
         }
     }
 
