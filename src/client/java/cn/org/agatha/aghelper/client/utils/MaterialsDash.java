@@ -70,6 +70,15 @@ public class MaterialsDash extends Screen {
                 .dimensions(60, 10, 80, 20)
                 .build());
 
+        //如果选择了材料列表，那么显示刷新按钮
+        if (AghelperClient.selectedMaterialId != -1) {
+            addDrawableChild(ButtonWidget.builder(Text.of("刷新"), button -> {
+                loadMaterialDetails();
+                    })
+                .dimensions(150, 10, 40, 20)
+                .build());
+        }
+
         // 计算每页可以显示的条目数量
         int availableHeight = height - TOP_MARGIN - BOTTOM_MARGIN;
         itemsPerPage = Math.max(1, availableHeight / (ITEM_HEIGHT + ITEM_SPACING));
@@ -331,20 +340,18 @@ public class MaterialsDash extends Screen {
         renderBackground(context);
 
         super.render(context, mouseX, mouseY, delta);
-        // 渲染标题
-        context.drawText(textRenderer, "材料列表查看", width / 2 - textRenderer.getWidth("材料列表查看") / 2, 15, 0xFFFFFF, true);
         
         // 显示材料列表选择状态
         String statusText;
         if (AghelperClient.selectedMaterialId == -1) {
             statusText = "当前未选择材料列表";
         } else {
-            statusText = "当前选择的材料列表ID: " + AghelperClient.selectedMaterialId;
+            statusText = "当前选择的材料列表: " + AghelperClient.selectedMaterialName;
         }
         
         // 在页面顶部居中显示状态
         int textWidth = textRenderer.getWidth(statusText);
-        context.drawText(textRenderer, statusText, (width - textWidth) / 2, 35, 0xFFFFFF, true);
+        context.drawText(textRenderer, statusText, (width - textWidth) / 2, 40, 0xFFFFFF, true);
         
         // 显示材料详情
         if (loading) {

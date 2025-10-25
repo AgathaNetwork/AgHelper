@@ -273,6 +273,7 @@ public class MaterialsList extends Screen {
                     mouseY >= buttonY && mouseY <= buttonY + buttonHeight) {
                     MaterialItem selectedMaterial = materials.get(i);
                     AghelperClient.selectedMaterialId = selectedMaterial.id;
+                    AghelperClient.selectedMaterialName = selectedMaterial.name; // 保存材料列表名称
                     client.setScreen(new MaterialsDash());
                     return true;
                 }

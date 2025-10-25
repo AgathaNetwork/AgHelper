@@ -35,6 +35,7 @@ import java.util.stream.Stream;
 public class AghelperClient implements ClientModInitializer {
 
     public static int selectedMaterialId = -1; // 材料列表ID，默认为-1表示未选择
+    public static String selectedMaterialName = ""; // 材料列表名称
     private static KeyBinding menuKeyBinding;
     private static KeyBinding autologinKeyBinding;
     private static KeyBinding createPictureKeyBinding;
