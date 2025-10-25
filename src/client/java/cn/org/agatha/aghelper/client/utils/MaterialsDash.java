@@ -156,7 +156,9 @@ public class MaterialsDash extends Screen {
         Thread apiThread = new Thread(() -> {
             try {
                 String playerName = MinecraftClient.getInstance().getSession().getUsername();
-                URL url = new URL("https://api-materials.agatha.org.cn/mod/setDone?id=" + AghelperClient.selectedMaterialId + "&name=" + material.name + "&doneby=" + playerName);
+                // 对URL中的参数进行UTF-8编码
+                String encodedName = java.net.URLEncoder.encode(material.name, "UTF-8");
+                URL url = new URL("https://api-materials.agatha.org.cn/mod/setDone?id=" + AghelperClient.selectedMaterialId + "&name=" + encodedName + "&doneby=" + playerName);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(5000);
@@ -200,7 +202,9 @@ public class MaterialsDash extends Screen {
         
         Thread apiThread = new Thread(() -> {
             try {
-                URL url = new URL("https://api-materials.agatha.org.cn/mod/setUnDone?id=" + AghelperClient.selectedMaterialId + "&name=" + material.name);
+                // 对URL中的参数进行UTF-8编码
+                String encodedName = java.net.URLEncoder.encode(material.name, "UTF-8");
+                URL url = new URL("https://api-materials.agatha.org.cn/mod/setUnDone?id=" + AghelperClient.selectedMaterialId + "&name=" + encodedName);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(5000);
