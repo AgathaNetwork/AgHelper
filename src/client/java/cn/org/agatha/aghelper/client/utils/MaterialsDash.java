@@ -2,15 +2,60 @@ package cn.org.agatha.aghelper.client.utils;
 
 import cn.org.agatha.aghelper.client.AghelperClient;
 import cn.org.agatha.aghelper.client.MenuScreen;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+
 public class MaterialsDash extends Screen {
+    private static class MaterialDetailItem {
+        String name;
+        int count;
+        String occupied;
+        int done;
+        long donetime;
+        String doneby;
+
+        MaterialDetailItem(String name, int count, String occupied, int done, long donetime, String doneby) {
+            this.name = name;
+            this.count = count;
+            this.occupied = occupied;
+            this.done = done;
+            this.donetime = donetime;
+            this.doneby = doneby;
+        }
+    }
+
+    private List<MaterialDetailItem> materials = new ArrayList<>();
+    private boolean loading = false;
+    private String errorMessage = null;
+    private int currentPage = 0;
+    private int itemsPerPage = 0;
+    private ButtonWidget prevButton;
+    private ButtonWidget nextButton;
+    private static final int ITEM_HEIGHT = 30;
+    private static final int ITEM_SPACING = 5;
+    private static final int TOP_MARGIN = 80;
+    private static final int BOTTOM_MARGIN = 30;
+
     public MaterialsDash() {
         super(Text.of("材料列表查看"));
     }
+    
     @Override
     protected void init() {
         // 添加一个返回按钮
@@ -22,8 +67,117 @@ public class MaterialsDash extends Screen {
                 .dimensions(60, 10, 80, 20)
                 .build());
 
-        // 居中说明文字
+        // 计算每页可以显示的条目数量
+        int availableHeight = height - TOP_MARGIN - BOTTOM_MARGIN;
+        itemsPerPage = Math.max(1, availableHeight / (ITEM_HEIGHT + ITEM_SPACING));
+        
+        // 添加翻页按钮
+        int buttonWidth = 60;
+        int buttonHeight = 20;
+        int buttonY = height - 30;
+        
+        prevButton = ButtonWidget.builder(Text.of("上一页"), button -> {
+            if (currentPage > 0) {
+                currentPage--;
+                updateButtons();
+            }
+        }).dimensions(width / 2 - buttonWidth - 5, buttonY, buttonWidth, buttonHeight).build();
+        
+        nextButton = ButtonWidget.builder(Text.of("下一页"), button -> {
+            int totalPages = (int) Math.ceil((double) materials.size() / itemsPerPage);
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                updateButtons();
+            }
+        }).dimensions(width / 2 + 5, buttonY, buttonWidth, buttonHeight).build();
+        
+        addDrawableChild(prevButton);
+        addDrawableChild(nextButton);
+        
+        // 初始化按钮状态
+        updateButtons();
+        
+        // 如果已选择材料列表，则自动加载详情
+        if (AghelperClient.selectedMaterialId != -1) {
+            loadMaterialDetails();
+        }
+    }
 
+    private void loadMaterialDetails() {
+        if (AghelperClient.selectedMaterialId == -1) {
+            return;
+        }
+        
+        loading = true;
+        errorMessage = null;
+        materials.clear();
+        currentPage = 0;
+        updateButtons();
+        
+        // 在后台线程中加载数据
+        Thread loaderThread = new Thread(() -> {
+            try {
+                URL url = new URL("https://api-materials.agatha.org.cn/mod/detail?id=" + AghelperClient.selectedMaterialId);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 200) {
+                    InputStream inputStream = connection.getInputStream();
+                    InputStreamReader reader = new InputStreamReader(inputStream, "UTF-8");
+                    
+                    JsonObject response = JsonParser.parseReader(reader).getAsJsonObject();
+                    if (response.has("data")) {
+                        JsonObject data = response.getAsJsonObject("data");
+                        if (data.has("json")) {
+                            String json = data.get("json").getAsString();
+                            
+                            // 解析JSON数组
+                            Type listType = new TypeToken<List<MaterialDetailItem>>(){}.getType();
+                            List<MaterialDetailItem> loadedMaterials = new Gson().fromJson(json, listType);
+                            
+                            // 过滤掉已完成的条目(done=1)
+                            List<MaterialDetailItem> filteredMaterials = new ArrayList<>();
+                            for (MaterialDetailItem item : loadedMaterials) {
+                                if (item.done != 1) {
+                                    filteredMaterials.add(item);
+                                }
+                            }
+                            
+                            // 在主线程中更新UI
+                            client.execute(() -> {
+                                this.materials = filteredMaterials;
+                                this.loading = false;
+                                this.errorMessage = null;
+                                updateButtons();
+                            });
+                        } else {
+                            throw new IOException("Invalid response format: missing json field");
+                        }
+                    } else {
+                        throw new IOException("Invalid response format");
+                    }
+                } else {
+                    throw new IOException("HTTP Error: " + responseCode);
+                }
+            } catch (Exception e) {
+                client.execute(() -> {
+                    this.loading = false;
+                    this.errorMessage = "加载失败: " + e.getMessage();
+                    updateButtons();
+                });
+            }
+        });
+        
+        loaderThread.start();
+    }
+
+    private void updateButtons() {
+        int totalPages = (int) Math.ceil((double) materials.size() / itemsPerPage);
+        prevButton.active = currentPage > 0;
+        nextButton.active = currentPage < totalPages - 1;
     }
 
     @Override
@@ -31,6 +185,9 @@ public class MaterialsDash extends Screen {
         renderBackground(context);
 
         super.render(context, mouseX, mouseY, delta);
+        // 渲染标题
+        context.drawText(textRenderer, "材料列表查看", width / 2 - textRenderer.getWidth("材料列表查看") / 2, 15, 0xFFFFFF, true);
+        
         // 显示材料列表选择状态
         String statusText;
         if (AghelperClient.selectedMaterialId == -1) {
@@ -41,9 +198,66 @@ public class MaterialsDash extends Screen {
         
         // 在页面顶部居中显示状态
         int textWidth = textRenderer.getWidth(statusText);
+        context.drawText(textRenderer, statusText, (width - textWidth) / 2, 35, 0xFFFFFF, true);
+        
+        // 显示材料详情
+        if (loading) {
+            // 显示加载中
+            context.drawTextWithShadow(textRenderer, "加载中...", 
+                (width - textRenderer.getWidth("加载中...")) / 2, height / 2, 0xFFFFFF);
+        } else if (errorMessage != null) {
+            // 显示错误信息
+            context.drawTextWithShadow(textRenderer, errorMessage, 
+                (width - textRenderer.getWidth(errorMessage)) / 2, height / 2, 0xFF5555);
+        } else if (!materials.isEmpty()) {
+            // 渲染材料列表
+            renderMaterialList(context, mouseX, mouseY);
+            
+            // 显示页码信息
+            int totalPages = (int) Math.ceil((double) materials.size() / itemsPerPage);
+            if (totalPages > 0) {
+                String pageText = String.format("第 %d/%d 页", currentPage + 1, totalPages);
+                context.drawTextWithShadow(textRenderer, pageText, 
+                    width / 2 - textRenderer.getWidth(pageText) / 2, height - 50, 0xFFFFFF);
+            }
+        } else if (AghelperClient.selectedMaterialId != -1) {
+            // 显示无数据提示信息
+            context.drawTextWithShadow(textRenderer, "该材料列表暂无数据", 
+                (width - textRenderer.getWidth("该材料列表暂无数据")) / 2, height / 2, 0xFFFFFF);
+        }
 
-        context.drawText(textRenderer, statusText, (width - textWidth) / 2 + 25, 15, 0xFFFFFF, true);
+    }
 
+    private void renderMaterialList(DrawContext context, int mouseX, int mouseY) {
+        int startY = TOP_MARGIN;
+        int itemWidth = width - 40;
+        
+        // 计算当前页的条目范围
+        int startIndex = currentPage * itemsPerPage;
+        int endIndex = Math.min(startIndex + itemsPerPage, materials.size());
+        
+        for (int i = startIndex; i < endIndex; i++) {
+            MaterialDetailItem material = materials.get(i);
+            int itemIndex = i - startIndex; // 当前页中的索引
+            int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
+            
+            // 绘制列表项背景
+            int backgroundColor = isMouseOverItem(mouseX, mouseY, itemY) ? 
+                0x80AAAAAA : 0x80222222;
+            context.fill(20, itemY, itemWidth, itemY + ITEM_HEIGHT, backgroundColor);
+            
+            // 绘制边框
+            context.drawBorder(20, itemY, itemWidth - 20, ITEM_HEIGHT, 0xFFFFFFFF);
+            
+            // 绘制文本
+            String displayText = String.format("%s (数量: %d)", material.name, material.count);
+            context.drawTextWithShadow(textRenderer, displayText, 25, itemY + 10, 0xFFFFFF);
+        }
+    }
+
+    private boolean isMouseOverItem(int mouseX, int mouseY, int itemY) {
+        return mouseX >= 20 && mouseX <= width - 20 && 
+               mouseY >= itemY && mouseY <= itemY + ITEM_HEIGHT;
     }
 
     public void renderBackground(DrawContext context) {
@@ -55,5 +269,18 @@ public class MaterialsDash extends Screen {
         context.fillGradient(0, 0, width, height/2, 0xFF202020, 0xFF101010);
         // 底部渐变
         context.fillGradient(0, height/2, width, height, 0xFF101010, 0xFF202020);
+    }
+    
+    @Override
+    public void tick() {
+        super.tick();
+        // 页面大小可能已改变，重新计算每页条目数
+        int availableHeight = height - TOP_MARGIN - BOTTOM_MARGIN;
+        int newItemsPerPage = Math.max(1, availableHeight / (ITEM_HEIGHT + ITEM_SPACING));
+        
+        if (newItemsPerPage != itemsPerPage) {
+            itemsPerPage = newItemsPerPage;
+            updateButtons();
+        }
     }
 }
