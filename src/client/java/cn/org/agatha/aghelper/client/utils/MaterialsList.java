@@ -9,9 +9,7 @@ import com.google.gson.JsonParser;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.ScrollableWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
 
@@ -45,11 +43,15 @@ public class MaterialsList extends Screen {
     private List<MaterialItem> materials = new ArrayList<>();
     private boolean loading = true;
     private String errorMessage = null;
-    private ScrollableWidget scrollableWidget;
-    private int contentHeight = 0;
+    private int currentPage = 0;
+    private int itemsPerPage = 0;
+    private int totalItems = 0;
+    private ButtonWidget prevButton;
+    private ButtonWidget nextButton;
     private static final int ITEM_HEIGHT = 30;
     private static final int ITEM_SPACING = 5;
-    private double currentScrollY = 0;
+    private static final int TOP_MARGIN = 50;
+    private static final int BOTTOM_MARGIN = 30;
 
     public MaterialsList() {
         super(Text.of("材料列表选择"));
@@ -57,48 +59,37 @@ public class MaterialsList extends Screen {
     
     @Override
     protected void init() {
-        // 添加一个返回按钮
+        // 添加返回按钮
         addDrawableChild(ButtonWidget.builder(Text.of("返回"), button -> client.setScreen(new MaterialsDash()))
                 .dimensions(10, 10, 40, 20)
                 .build());
 
-        // 创建滚动容器
-        this.scrollableWidget = new ScrollableWidget(
-                20,  // x位置
-                40,  // y位置
-                width - 40,  // 宽度
-                height - 60, // 高度
-                Text.literal("")) {
-            
-            @Override
-            protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-                // 不需要实现
-            }
-
-            @Override
-            protected int getContentsHeight() {
-                return contentHeight;
-            }
-
-            @Override
-            protected double getDeltaYPerScroll() {
-                return 15.0; // 每次滚动的距离
-            }
-
-            @Override
-            protected void renderContents(DrawContext context, int mouseX, int mouseY, float delta) {
-                renderMaterialList(context, mouseX, mouseY);
-            }
-            
-            // 重写setScrollY方法来跟踪滚动位置
-            @Override
-            protected void setScrollY(double scrollY) {
-                super.setScrollY(scrollY);
-                currentScrollY = scrollY;
-            }
-        };
+        // 计算每页可以显示的条目数量
+        int availableHeight = height - TOP_MARGIN - BOTTOM_MARGIN;
+        itemsPerPage = Math.max(1, availableHeight / (ITEM_HEIGHT + ITEM_SPACING));
         
-        this.addDrawableChild(scrollableWidget);
+        // 添加翻页按钮
+        int buttonWidth = 80;
+        int buttonHeight = 20;
+        int buttonY = height - 25;
+        
+        prevButton = ButtonWidget.builder(Text.of("上一页"), button -> {
+            if (currentPage > 0) {
+                currentPage--;
+                updateButtons();
+            }
+        }).dimensions(width / 2 - buttonWidth - 10, buttonY, buttonWidth, buttonHeight).build();
+        
+        nextButton = ButtonWidget.builder(Text.of("下一页"), button -> {
+            int totalPages = (int) Math.ceil((double) totalItems / itemsPerPage);
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                updateButtons();
+            }
+        }).dimensions(width / 2 + 10, buttonY, buttonWidth, buttonHeight).build();
+        
+        addDrawableChild(prevButton);
+        addDrawableChild(nextButton);
 
         // 异步加载材料列表
         loadMaterials();
@@ -142,8 +133,8 @@ public class MaterialsList extends Screen {
                             this.materials = loadedMaterials;
                             this.loading = false;
                             this.errorMessage = null;
-                            // 更新内容高度
-                            this.contentHeight = Math.max(0, loadedMaterials.size() * (ITEM_HEIGHT + ITEM_SPACING) - ITEM_SPACING);
+                            this.totalItems = loadedMaterials.size();
+                            updateButtons();
                         });
                     } else {
                         throw new IOException("Invalid response format");
@@ -155,6 +146,7 @@ public class MaterialsList extends Screen {
                 client.execute(() -> {
                     this.loading = false;
                     this.errorMessage = "加载失败: " + e.getMessage();
+                    updateButtons();
                 });
             }
         });
@@ -162,44 +154,10 @@ public class MaterialsList extends Screen {
         loaderThread.start();
     }
 
-    private void renderMaterialList(DrawContext context, int mouseX, int mouseY) {
-        if (loading) {
-            // 显示加载中
-            context.drawTextWithShadow(textRenderer, "加载中...", 
-                (width - textRenderer.getWidth("加载中...")) / 2, 10, 0xFFFFFF);
-        } else if (errorMessage != null) {
-            // 显示错误信息
-            context.drawTextWithShadow(textRenderer, errorMessage, 
-                (width - textRenderer.getWidth(errorMessage)) / 2, 10, 0xFF5555);
-        } else {
-            // 渲染材料列表
-            int startY = 50; // 向下移动50 (原来30 + 新增20)
-            int itemWidth = width - 35; // 扩展宽度以覆盖完整区域
-            
-            for (int i = 0; i < materials.size(); i++) {
-                MaterialItem material = materials.get(i);
-                int itemY = startY + i * (ITEM_HEIGHT + ITEM_SPACING);
-                
-                // 绘制列表项背景，向右移动30
-                int backgroundColor = isMouseOverItem(mouseX, mouseY, itemY) ? 
-                    0x80AAAAAA : 0x80222222;
-                context.fill(30, itemY, itemWidth, itemY + ITEM_HEIGHT, backgroundColor);
-                
-                // 绘制边框，向右移动30
-                context.drawBorder(30, itemY, itemWidth - 30, ITEM_HEIGHT, 0xFFFFFFFF);
-                
-                // 绘制文本，向右移动30
-                String displayText = String.format("%s (%s)", material.name, material.uploader);
-                context.drawTextWithShadow(textRenderer, displayText, 35, itemY + 10, 0xFFFFFF);
-            }
-        }
-    }
-
-    private boolean isMouseOverItem(int mouseX, int mouseY, int itemY) {
-        // 考虑滚动偏移量和位置调整
-        int adjustedMouseY = (int) (mouseY + currentScrollY);
-        return mouseX >= 30 && mouseX <= width - 35 &&
-               adjustedMouseY >= itemY && adjustedMouseY <= itemY + ITEM_HEIGHT;
+    private void updateButtons() {
+        int totalPages = (int) Math.ceil((double) totalItems / itemsPerPage);
+        prevButton.active = currentPage > 0;
+        nextButton.active = currentPage < totalPages - 1;
     }
 
     @Override
@@ -207,28 +165,108 @@ public class MaterialsList extends Screen {
         renderBackground(context);
 
         super.render(context, mouseX, mouseY, delta);
-
         // 渲染标题
-        context.drawText(textRenderer, "材料列表选择", width / 2, 15, 0xFFFFFF, true);
+        context.drawText(textRenderer, "材料列表选择", width / 2 - textRenderer.getWidth("材料列表选择") / 2, 15, 0xFFFFFF, true);
+        
+        if (loading) {
+            // 显示加载中
+            context.drawTextWithShadow(textRenderer, "加载中...", 
+                (width - textRenderer.getWidth("加载中...")) / 2, height / 2, 0xFFFFFF);
+        } else if (errorMessage != null) {
+            // 显示错误信息
+            context.drawTextWithShadow(textRenderer, errorMessage, 
+                (width - textRenderer.getWidth(errorMessage)) / 2, height / 2, 0xFF5555);
+        } else {
+            // 渲染材料列表
+            renderMaterialList(context, mouseX, mouseY);
+            
+            // 显示页码信息
+            int totalPages = (int) Math.ceil((double) totalItems / itemsPerPage);
+            if (totalPages > 0) {
+                String pageText = String.format("第 %d/%d 页", currentPage + 1, totalPages);
+                context.drawTextWithShadow(textRenderer, pageText, 
+                    width / 2 - textRenderer.getWidth(pageText) / 2, height - 50, 0xFFFFFF);
+            }
+        }
 
+    }
+
+    private void renderMaterialList(DrawContext context, int mouseX, int mouseY) {
+        int startY = TOP_MARGIN;
+        int itemWidth = width - 35;
+        
+        // 计算当前页的条目范围
+        int startIndex = currentPage * itemsPerPage;
+        int endIndex = Math.min(startIndex + itemsPerPage, materials.size());
+        
+        for (int i = startIndex; i < endIndex; i++) {
+            MaterialItem material = materials.get(i);
+            int itemIndex = i - startIndex; // 当前页中的索引
+            int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
+            
+            // 绘制列表项背景
+            int backgroundColor = isMouseOverItem(mouseX, mouseY, itemY) ? 
+                0x80AAAAAA : 0x80222222;
+            context.fill(30, itemY, itemWidth, itemY + ITEM_HEIGHT, backgroundColor);
+            
+            // 绘制边框
+            context.drawBorder(30, itemY, itemWidth - 30, ITEM_HEIGHT, 0xFFFFFFFF);
+            
+            // 绘制文本
+            String displayText = String.format("%s (%s)", material.name, material.uploader);
+            context.drawTextWithShadow(textRenderer, displayText, 35, itemY + 10, 0xFFFFFF);
+            
+            // 在条目右侧绘制"选择"按钮
+            int buttonX = itemWidth - 60;
+            int buttonY = itemY + 5;
+            int buttonWidth = 50;
+            int buttonHeight = 20;
+            
+            // 检查鼠标是否悬停在按钮上
+            boolean isButtonHovered = mouseX >= buttonX && mouseX <= buttonX + buttonWidth && 
+                                     mouseY >= buttonY && mouseY <= buttonY + buttonHeight;
+            
+            // 根据悬停状态设置按钮颜色
+            int buttonColor = isButtonHovered ? 0xFF5555FF : 0xFF333333;
+            context.fill(buttonX, buttonY, buttonX + buttonWidth, buttonY + buttonHeight, buttonColor);
+            context.drawBorder(buttonX, buttonY, buttonWidth, buttonHeight, 0xFFFFFFFF);
+            
+            // 绘制按钮文本
+            String buttonText = "选择";
+            int textX = buttonX + (buttonWidth - textRenderer.getWidth(buttonText)) / 2;
+            int textY = buttonY + (buttonHeight - textRenderer.fontHeight) / 2;
+            context.drawTextWithShadow(textRenderer, buttonText, textX, textY, 0xFFFFFF);
+        }
+    }
+
+    private boolean isMouseOverItem(int mouseX, int mouseY, int itemY) {
+        return mouseX >= 30 && mouseX <= width - 35 && 
+               mouseY >= itemY && mouseY <= itemY + ITEM_HEIGHT;
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (!loading && errorMessage == null) {
-            // 检查是否点击了滚动区域内的项目，考虑位置调整
-            if (mouseX >= 50 && mouseX <= width - 20 && mouseY >= 80 && mouseY <= height - 20) {
-                // 让滚动部件先处理点击事件
-                if (scrollableWidget.mouseClicked(mouseX, mouseY, button)) {
-                    return true;
-                }
+            int startY = TOP_MARGIN;
+            int itemWidth = width - 35;
+            
+            // 计算当前页的条目范围
+            int startIndex = currentPage * itemsPerPage;
+            int endIndex = Math.min(startIndex + itemsPerPage, materials.size());
+            
+            for (int i = startIndex; i < endIndex; i++) {
+                int itemIndex = i - startIndex; // 当前页中的索引
+                int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
                 
-                // 计算点击的项目索引，考虑位置调整
-                double adjustedMouseY = mouseY - 90 + currentScrollY; // 调整为新的起始位置
-                int index = (int) (adjustedMouseY / (ITEM_HEIGHT + ITEM_SPACING));
+                // 检查是否点击了"选择"按钮
+                int buttonX = itemWidth - 60;
+                int buttonY = itemY + 5;
+                int buttonWidth = 50;
+                int buttonHeight = 20;
                 
-                if (index >= 0 && index < materials.size()) {
-                    MaterialItem selectedMaterial = materials.get(index);
+                if (mouseX >= buttonX && mouseX <= buttonX + buttonWidth && 
+                    mouseY >= buttonY && mouseY <= buttonY + buttonHeight) {
+                    MaterialItem selectedMaterial = materials.get(i);
                     AghelperClient.selectedMaterialId = selectedMaterial.id;
                     client.setScreen(new MaterialsDash());
                     return true;
@@ -237,15 +275,6 @@ public class MaterialsList extends Screen {
         }
         
         return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        // 让滚动部件处理滚动事件
-        if (scrollableWidget.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
-            return true;
-        }
-        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     public void renderBackground(DrawContext context) {
@@ -257,5 +286,10 @@ public class MaterialsList extends Screen {
         context.fillGradient(0, 0, width, height/2, 0xFF202020, 0xFF101010);
         // 底部渐变
         context.fillGradient(0, height/2, width, height, 0xFF101010, 0xFF202020);
+    }
+    
+    @Override
+    public void removed() {
+        super.removed();
     }
 }
