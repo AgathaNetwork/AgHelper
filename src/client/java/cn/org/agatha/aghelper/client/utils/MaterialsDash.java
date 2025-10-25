@@ -40,6 +40,9 @@ public class MaterialsDash extends Screen {
         }
     }
 
+    // 添加按钮列表用于存储每个物品的按钮
+    private List<ButtonWidget> itemButtons = new ArrayList<>();
+    
     private List<MaterialDetailItem> materials = new ArrayList<>();
     private boolean loading = false;
     private String errorMessage = null;
@@ -103,6 +106,130 @@ public class MaterialsDash extends Screen {
         }
     }
 
+    private void clearItemButtons() {
+        for (ButtonWidget button : itemButtons) {
+            remove(button);
+        }
+        itemButtons.clear();
+    }
+    
+    private void addItemButtons() {
+        clearItemButtons();
+        
+        int startY = TOP_MARGIN;
+        
+        // 计算当前页的条目范围
+        int startIndex = currentPage * itemsPerPage;
+        int endIndex = Math.min(startIndex + itemsPerPage, materials.size());
+        
+        for (int i = startIndex; i < endIndex; i++) {
+            MaterialDetailItem material = materials.get(i);
+            int itemIndex = i - startIndex; // 当前页中的索引
+            int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
+            
+            // 为每个物品创建按钮
+            ButtonWidget itemButton = ButtonWidget.builder(
+                Text.of(material.done == 1 ? "取消完成" : "完成"),
+                button -> onItemButtonClick(material, button))
+                .dimensions(width - 85, itemY + 5, 60, 20)
+                .build();
+            
+            addDrawableChild(itemButton);
+            itemButtons.add(itemButton);
+        }
+    }
+    
+    private void onItemButtonClick(MaterialDetailItem material, ButtonWidget button) {
+        if (material.done == 1) {
+            // 取消完成
+            setItemUndone(material, button);
+        } else {
+            // 设置为完成
+            setItemDone(material, button);
+        }
+    }
+    
+    private void setItemDone(MaterialDetailItem material, ButtonWidget button) {
+        button.active = false;
+        button.setMessage(Text.of("处理中..."));
+        
+        Thread apiThread = new Thread(() -> {
+            try {
+                String playerName = MinecraftClient.getInstance().getSession().getUsername();
+                URL url = new URL("https://api-materials.agatha.org.cn/mod/setDone?id=" + AghelperClient.selectedMaterialId + "&name=" + material.name + "&doneby=" + playerName);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 200) {
+                    InputStream inputStream = connection.getInputStream();
+                    InputStreamReader reader = new InputStreamReader(inputStream, "UTF-8");
+                    
+                    JsonObject response = JsonParser.parseReader(reader).getAsJsonObject();
+                    if (response.has("doneby")) {
+                        String doneby = response.get("doneby").getAsString();
+                        
+                        // 在主线程中更新UI
+                        client.execute(() -> {
+                            material.done = 1;
+                            material.doneby = doneby;
+                            button.setMessage(Text.of("取消完成"));
+                            button.active = true;
+                        });
+                    }
+                } else {
+                    throw new IOException("HTTP Error: " + responseCode);
+                }
+            } catch (Exception e) {
+                client.execute(() -> {
+                    button.setMessage(Text.of("重试"));
+                    button.active = true;
+                    // 可以添加错误提示
+                });
+            }
+        });
+        
+        apiThread.start();
+    }
+    
+    private void setItemUndone(MaterialDetailItem material, ButtonWidget button) {
+        button.active = false;
+        button.setMessage(Text.of("处理中..."));
+        
+        Thread apiThread = new Thread(() -> {
+            try {
+                URL url = new URL("https://api-materials.agatha.org.cn/mod/setUnDone?id=" + AghelperClient.selectedMaterialId + "&name=" + material.name);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 200) {
+                    // 在主线程中更新UI
+                    client.execute(() -> {
+                        material.done = 0;
+                        material.doneby = "";
+                        button.setMessage(Text.of("完成"));
+                        button.active = true;
+                    });
+                } else {
+                    throw new IOException("HTTP Error: " + responseCode);
+                }
+            } catch (Exception e) {
+                client.execute(() -> {
+                    button.setMessage(Text.of("重试"));
+                    button.active = true;
+                    // 可以添加错误提示
+                });
+            }
+        });
+        
+        apiThread.start();
+    }
+    
     private void loadMaterialDetails() {
         if (AghelperClient.selectedMaterialId == -1) {
             return;
@@ -112,6 +239,7 @@ public class MaterialsDash extends Screen {
         errorMessage = null;
         materials.clear();
         currentPage = 0;
+        clearItemButtons();
         updateButtons();
         
         // 在后台线程中加载数据
@@ -152,6 +280,7 @@ public class MaterialsDash extends Screen {
                                 this.loading = false;
                                 this.errorMessage = null;
                                 updateButtons();
+                                addItemButtons(); // 添加物品按钮
                             });
                         } else {
                             throw new IOException("Invalid response format: missing json field");
@@ -167,6 +296,7 @@ public class MaterialsDash extends Screen {
                     this.loading = false;
                     this.errorMessage = "加载失败: " + e.getMessage();
                     updateButtons();
+                    clearItemButtons();
                 });
             }
         });
@@ -177,7 +307,10 @@ public class MaterialsDash extends Screen {
     private void updateButtons() {
         int totalPages = (int) Math.ceil((double) materials.size() / itemsPerPage);
         prevButton.active = currentPage > 0;
-        nextButton.active = currentPage < totalPages - 1;
+        nextButton.active = currentPage < totalPages - 1 && !loading;
+        
+        // 更新物品按钮
+        addItemButtons();
     }
 
     @Override
@@ -230,7 +363,7 @@ public class MaterialsDash extends Screen {
 
     private void renderMaterialList(DrawContext context, int mouseX, int mouseY) {
         int startY = TOP_MARGIN;
-        int itemWidth = width - 40;
+        int itemWidth = width - 20;
         
         // 计算当前页的条目范围
         int startIndex = currentPage * itemsPerPage;
@@ -252,6 +385,12 @@ public class MaterialsDash extends Screen {
             // 绘制文本
             String displayText = String.format("%s (数量: %d)", material.name, material.count);
             context.drawTextWithShadow(textRenderer, displayText, 25, itemY + 10, 0xFFFFFF);
+            
+            // 绘制完成状态信息
+            if (material.done == 1) {
+                String doneByText = "完成者: " + material.doneby;
+                context.drawTextWithShadow(textRenderer, doneByText, width - 150, itemY + 10, 0xAAAAAA);
+            }
         }
     }
 
@@ -281,6 +420,7 @@ public class MaterialsDash extends Screen {
         if (newItemsPerPage != itemsPerPage) {
             itemsPerPage = newItemsPerPage;
             updateButtons();
+            addItemButtons(); // 重新添加物品按钮
         }
     }
 }
