@@ -270,17 +270,26 @@ public class MaterialsDash extends Screen {
                             Type listType = new TypeToken<List<MaterialDetailItem>>(){}.getType();
                             List<MaterialDetailItem> loadedMaterials = new Gson().fromJson(json, listType);
                             
-                            // 过滤掉已完成的条目(done=1)
-                            List<MaterialDetailItem> filteredMaterials = new ArrayList<>();
+                            // 将未完成的条目排在前面，已完成的条目排在后面
+                            List<MaterialDetailItem> sortedMaterials = new ArrayList<>();
+                            List<MaterialDetailItem> unfinishedMaterials = new ArrayList<>();
+                            List<MaterialDetailItem> finishedMaterials = new ArrayList<>();
+                            
                             for (MaterialDetailItem item : loadedMaterials) {
                                 if (item.done != 1) {
-                                    filteredMaterials.add(item);
+                                    unfinishedMaterials.add(item);
+                                } else {
+                                    finishedMaterials.add(item);
                                 }
                             }
                             
+                            // 先添加未完成的条目，再添加已完成的条目
+                            sortedMaterials.addAll(unfinishedMaterials);
+                            sortedMaterials.addAll(finishedMaterials);
+                            
                             // 在主线程中更新UI
                             client.execute(() -> {
-                                this.materials = filteredMaterials;
+                                this.materials = sortedMaterials;
                                 this.loading = false;
                                 this.errorMessage = null;
                                 updateButtons();
@@ -386,15 +395,13 @@ public class MaterialsDash extends Screen {
             // 绘制边框
             context.drawBorder(20, itemY, itemWidth - 20, ITEM_HEIGHT, 0xFFFFFFFF);
             
-            // 绘制文本
-            String displayText = String.format("%s (数量: %d)", material.name, material.count);
-            context.drawTextWithShadow(textRenderer, displayText, 25, itemY + 10, 0xFFFFFF);
+            // 根据完成状态设置文本颜色
+            int textColor = material.done == 1 ? 0x888888 : 0xFFFFFF; // 已完成的条目用灰色显示
             
-            // 绘制完成状态信息
-            if (material.done == 1) {
-                String doneByText = "完成者: " + material.doneby;
-                context.drawTextWithShadow(textRenderer, doneByText, width - 150, itemY + 10, 0xAAAAAA);
-            }
+            // 绘制文本
+            String displayText = String.format("%s *%d", material.name, material.count);
+            context.drawTextWithShadow(textRenderer, displayText, 25, itemY + 10, textColor);
+
         }
     }
 
