@@ -386,6 +386,9 @@ public class MaterialsDash extends Screen {
         clearItemButtons();
         updateButtons();
         
+        // 加载该材料列表中用户已领取的项目
+        OccupiedItemsHUD.getInstance().loadOccupiedItemsForMaterialList(AghelperClient.selectedMaterialId);
+        
         // 在后台线程中加载数据
         Thread loaderThread = new Thread(() -> {
             try {
