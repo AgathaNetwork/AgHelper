@@ -574,4 +574,25 @@ public class MaterialsDash extends Screen {
             addItemButtons(); // 重新添加物品按钮
         }
     }
+    
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        // 使用鼠标滚轮进行翻页
+        if (verticalAmount > 0) {
+            // 向上滚动，前往上一页
+            if (currentPage > 0) {
+                currentPage--;
+                updateButtons();
+            }
+        } else if (verticalAmount < 0) {
+            // 向下滚动，前往下一页
+            int totalPages = (int) Math.ceil((double) materials.size() / itemsPerPage);
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                updateButtons();
+            }
+        }
+        
+        return true;
+    }
 }
