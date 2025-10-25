@@ -135,39 +135,41 @@ public class MaterialsDash extends Screen {
             MaterialDetailItem material = materials.get(i);
             int itemIndex = i - startIndex; // 当前页中的索引
             int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
-            
-            // 为每个物品创建按钮
+
             ButtonWidget itemButton = ButtonWidget.builder(
-                Text.of(material.done == 1 ? "取消完成" : "完成"),
-                button -> onItemButtonClick(material, button))
-                .dimensions(width - 85, itemY + 5, 60, 20)
-                .build();
-            
+                            Text.of(material.done == 1 ? "取消完成" : "完成"),
+                            button -> onItemButtonClick(material, button))
+                    .dimensions(width - 85, itemY + 5, 60, 20)
+                    .build();
+
             addDrawableChild(itemButton);
             itemButtons.add(itemButton);
-            
-            // 如果物品未完成且未被占用，则添加"领取"按钮
-            if (material.done != 1 && (material.occupied == null || material.occupied.isEmpty())) {
-                ButtonWidget occupyButton = ButtonWidget.builder(
-                    Text.of("领取"),
-                    button -> onOccupyButtonClick(material, button))
-                    .dimensions(width - 150, itemY + 5, 60, 20)
-                    .build();
-                
-                addDrawableChild(occupyButton);
-                itemButtons.add(occupyButton);
-            } 
-            // 如果物品被当前用户占用，则添加"取消领取"按钮
-            else if (material.occupied != null && !material.occupied.isEmpty() && 
-                     material.occupied.equals(MinecraftClient.getInstance().getSession().getUsername())) {
-                ButtonWidget unoccupyButton = ButtonWidget.builder(
-                    Text.of("取消领取"),
-                    button -> onUnoccupyButtonClick(material, button))
-                    .dimensions(width - 150, itemY + 5, 60, 20)
-                    .build();
-                
-                addDrawableChild(unoccupyButton);
-                itemButtons.add(unoccupyButton);
+
+            // 为每个物品创建按钮（仅对未完成的条目）
+            if (material.done != 1) {
+                // 如果物品未完成且未被占用，则添加"领取"按钮
+                if (material.occupied == null || material.occupied.isEmpty()) {
+                    ButtonWidget occupyButton = ButtonWidget.builder(
+                        Text.of("领取"),
+                        button -> onOccupyButtonClick(material, button))
+                        .dimensions(width - 150, itemY + 5, 60, 20)
+                        .build();
+                    
+                    addDrawableChild(occupyButton);
+                    itemButtons.add(occupyButton);
+                } 
+                // 如果物品被当前用户占用，则添加"取消领取"按钮
+                else if (material.occupied != null && !material.occupied.isEmpty() && 
+                         material.occupied.equals(MinecraftClient.getInstance().getSession().getUsername())) {
+                    ButtonWidget unoccupyButton = ButtonWidget.builder(
+                        Text.of("取消领取"),
+                        button -> onUnoccupyButtonClick(material, button))
+                        .dimensions(width - 150, itemY + 5, 60, 20)
+                        .build();
+                    
+                    addDrawableChild(unoccupyButton);
+                    itemButtons.add(unoccupyButton);
+                }
             }
         }
     }
@@ -535,8 +537,8 @@ public class MaterialsDash extends Screen {
             }
             context.drawTextWithShadow(textRenderer, displayText, 25, itemY + 10, textColor);
             
-            // 显示占用状态信息
-            if (material.occupied != null && !material.occupied.isEmpty()) {
+            // 显示占用状态信息（仅对未完成的条目）
+            if (material.done != 1 && material.occupied != null && !material.occupied.isEmpty()) {
                 String occupiedByText = "被 " + material.occupied + " 领取";
                 context.drawTextWithShadow(textRenderer, occupiedByText, width - 220, itemY + 10, 0xFFFF00); // 黄色显示
             }
