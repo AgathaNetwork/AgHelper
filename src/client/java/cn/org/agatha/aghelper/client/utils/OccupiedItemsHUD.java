@@ -9,6 +9,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,6 +27,9 @@ public class OccupiedItemsHUD implements HudRenderCallback {
     private int materialId = -1;
     private long lastUpdate = 0;
     private static final long UPDATE_INTERVAL = 1000; // 1秒更新间隔
+    
+    // 存储上一次的材料详情，用于比较变化
+    private List<MaterialDetailItem> lastMaterialDetails = new ArrayList<>();
     
     // HUD位置相关变量
     private int hudX = 100;
@@ -94,6 +99,7 @@ public class OccupiedItemsHUD implements HudRenderCallback {
     public void setMaterialId(int materialId) {
         this.materialId = materialId;
         this.lastUpdate = 0; // 重置更新时间，确保立即更新
+        this.lastMaterialDetails.clear(); // 清空上一次的材料详情
     }
 
     private void updateOccupiedItems() {
@@ -129,8 +135,14 @@ public class OccupiedItemsHUD implements HudRenderCallback {
                             Type listType = new TypeToken<List<MaterialDetailItem>>(){}.getType();
                             List<MaterialDetailItem> loadedMaterials = new Gson().fromJson(json, listType);
                             
-                            // 在主线程中更新UI
+                            // 在主线程中更新UI和比较变化
                             MinecraftClient.getInstance().execute(() -> {
+                                // 比较变化并提示用户
+                                compareAndNotifyChanges(loadedMaterials, playerName);
+                                
+                                // 更新上一次的材料详情
+                                lastMaterialDetails = new ArrayList<>(loadedMaterials);
+                                
                                 // 清空当前列表
                                 occupiedItems.clear();
                                 
@@ -151,6 +163,58 @@ public class OccupiedItemsHUD implements HudRenderCallback {
         
         loaderThread.start();
     }
+    
+    private void compareAndNotifyChanges(List<MaterialDetailItem> currentMaterials, String currentPlayerName) {
+        // 如果是第一次加载，则不进行比较
+        if (lastMaterialDetails.isEmpty()) {
+            return;
+        }
+        
+        MinecraftClient client = MinecraftClient.getInstance();
+        
+        // 检查是否有玩家领取条目（不含自己）
+        for (MaterialDetailItem currentItem : currentMaterials) {
+            // 查找上一次状态中对应的条目
+            MaterialDetailItem lastItem = findItemByName(lastMaterialDetails, currentItem.name);
+            
+            // 如果之前未被领取，现在被其他玩家领取，则提示
+            if (lastItem != null && 
+                (lastItem.occupied == null || lastItem.occupied.isEmpty()) && 
+                currentItem.occupied != null && 
+                !currentItem.occupied.isEmpty() && 
+                !currentItem.occupied.equals(currentPlayerName)) {
+                
+                client.inGameHud.getChatHud().addMessage(
+                    Text.literal("玩家 " + currentItem.occupied + " 领取了 " + currentItem.name)
+                         .formatted(Formatting.YELLOW)
+                );
+            }
+        }
+        
+        // 检查是否有条目被完成（可以包含自己）
+        for (MaterialDetailItem currentItem : currentMaterials) {
+            // 查找上一次状态中对应的条目
+            MaterialDetailItem lastItem = findItemByName(lastMaterialDetails, currentItem.name);
+            
+            // 如果之前未完成，现在已完成，则提示
+            if (lastItem != null && lastItem.done != 1 && currentItem.done == 1) {
+                String doneByText = currentItem.doneby != null ? currentItem.doneby : "未知玩家";
+                client.inGameHud.getChatHud().addMessage(
+                    Text.literal(currentItem.name + " 已被 " + doneByText + " 收集完成")
+                         .formatted(Formatting.GREEN)
+                );
+            }
+        }
+    }
+    
+    private MaterialDetailItem findItemByName(List<MaterialDetailItem> items, String name) {
+        for (MaterialDetailItem item : items) {
+            if (item.name.equals(name)) {
+                return item;
+            }
+        }
+        return null;
+    }
 
     public void addOccupiedItem(String itemName) {
         // 检查物品是否已经存在于列表中，避免重复
@@ -161,67 +225,6 @@ public class OccupiedItemsHUD implements HudRenderCallback {
     
     public void removeOccupiedItem(String itemName) {
         occupiedItems.remove(itemName);
-    }
-
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && !occupiedItems.isEmpty()) { // 左键点击
-            MinecraftClient client = MinecraftClient.getInstance();
-            int screenWidth = client.getWindow().getScaledWidth();
-            int screenHeight = client.getWindow().getScaledHeight();
-            
-            // 初始化位置（第一次渲染时设置默认位置）
-            if (!positionInitialized) {
-                hudX = screenWidth / 2;
-                hudY = screenHeight - 40;
-                positionInitialized = true;
-            }
-            
-            // 检查是否点击在HUD上
-            int yPosition = hudY;
-            for (int i = 0; i < occupiedItems.size() && i < 5; i++) {
-                String text = "已领取: " + occupiedItems.get(i);
-                int textWidth = client.textRenderer.getWidth(text);
-                int xPosition = hudX - textWidth / 2;
-                
-                // 检查鼠标是否在文字区域内
-                if (mouseX >= xPosition - 3 && mouseX <= xPosition + textWidth + 3 && 
-                    mouseY >= yPosition - 1 && mouseY <= yPosition + 9) {
-                    isDragging = true;
-                    dragOffsetX = (int) (mouseX - hudX);
-                    dragOffsetY = (int) (mouseY - yPosition);
-                    return true;
-                }
-                
-                yPosition -= 12;
-            }
-        }
-        return false;
-    }
-
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (button == 0) {
-            isDragging = false;
-            return true;
-        }
-        return false;
-    }
-
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-        if (isDragging && button == 0) {
-            hudX = (int) (mouseX - dragOffsetX);
-            hudY = (int) (mouseY - dragOffsetY);
-            return true;
-        }
-        return false;
-    }
-    
-    public boolean mouseDragged(double mouseX, double mouseY, int button) {
-        if (isDragging && button == 0) {
-            hudX = (int) (mouseX - dragOffsetX);
-            hudY = (int) (mouseY - dragOffsetY);
-            return true;
-        }
-        return false;
     }
 
     @Override
@@ -255,7 +258,7 @@ public class OccupiedItemsHUD implements HudRenderCallback {
             // 显示领取的物品
             int yPosition = hudY;
             for (int i = 0; i < occupiedItems.size() && i < 5; i++) { // 最多显示5个物品
-                String text = "已领取: " + occupiedItems.get(i);
+                String text = occupiedItems.get(i);
                 int textWidth = client.textRenderer.getWidth(text);
                 int xPosition = hudX - textWidth / 2;
                 
@@ -277,5 +280,16 @@ public class OccupiedItemsHUD implements HudRenderCallback {
         int done;
         long donetime;
         String doneby;
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null || getClass() != obj.getClass()) return false;
+            MaterialDetailItem that = (MaterialDetailItem) obj;
+            return count == that.count && done == that.done && donetime == that.donetime &&
+                   name.equals(that.name) && 
+                   (occupied != null ? occupied.equals(that.occupied) : that.occupied == null) &&
+                   (doneby != null ? doneby.equals(that.doneby) : that.doneby == null);
+        }
     }
 }
