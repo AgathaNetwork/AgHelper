@@ -56,17 +56,16 @@ public class AghelperClient implements ClientModInitializer {
         
         // 注册鼠标事件监听器
         ScreenEvents.BEFORE_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            ScreenMouseEvents.beforeMouseClick(screen).register((screen1, mouseX, mouseY, button) -> 
-                OccupiedItemsHUD.getInstance().mouseClicked(mouseX, mouseY, button)
-            );
+            ScreenMouseEvents.beforeMouseClick(screen).register((screen1, mouseX, mouseY, button) -> {
+                // 检查是否点击在HUD区域内
+                if (OccupiedItemsHUD.getInstance().isMouseOver(mouseX, mouseY)) {
+                    OccupiedItemsHUD.getInstance().startDragging(mouseX, mouseY);
+                }
+            });
             
-            ScreenMouseEvents.afterMouseRelease(screen).register((screen1, mouseX, mouseY, button) -> 
-                OccupiedItemsHUD.getInstance().mouseReleased(mouseX, mouseY, button)
-            );
-            
-            ScreenMouseEvents.beforeMouseClick(screen).register((screen1, mouseX, mouseY, button) ->
-                OccupiedItemsHUD.getInstance().mouseDragged(mouseX, mouseY, button)
-            );
+            ScreenMouseEvents.afterMouseRelease(screen).register((screen1, mouseX, mouseY, button) -> {
+                OccupiedItemsHUD.getInstance().stopDragging();
+            });
         });
         
         // 检查更新

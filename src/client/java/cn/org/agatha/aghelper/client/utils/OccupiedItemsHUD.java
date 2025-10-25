@@ -40,6 +40,56 @@ public class OccupiedItemsHUD implements HudRenderCallback {
     public static OccupiedItemsHUD getInstance() {
         return INSTANCE;
     }
+    
+    public boolean isDragging() {
+        return isDragging;
+    }
+    
+    public boolean isMouseOver(double mouseX, double mouseY) {
+        if (occupiedItems.isEmpty()) return false;
+        
+        MinecraftClient client = MinecraftClient.getInstance();
+        // 初始化位置（第一次渲染时设置默认位置）
+        if (!positionInitialized) {
+            hudX = client.getWindow().getScaledWidth() / 2;
+            hudY = client.getWindow().getScaledHeight() - 40;
+            positionInitialized = true;
+        }
+        
+        // 检查是否点击在HUD上
+        int yPosition = hudY;
+        for (int i = 0; i < occupiedItems.size() && i < 5; i++) {
+            String text = "已领取: " + occupiedItems.get(i);
+            int textWidth = client.textRenderer.getWidth(text);
+            int xPosition = hudX - textWidth / 2;
+            
+            // 检查鼠标是否在文字区域内
+            if (mouseX >= xPosition - 3 && mouseX <= xPosition + textWidth + 3 && 
+                mouseY >= yPosition - 1 && mouseY <= yPosition + 9) {
+                return true;
+            }
+            
+            yPosition -= 12;
+        }
+        return false;
+    }
+    
+    public void startDragging(double mouseX, double mouseY) {
+        isDragging = true;
+        dragOffsetX = (int) (mouseX - hudX);
+        dragOffsetY = (int) (mouseY - hudY);
+    }
+    
+    public void stopDragging() {
+        isDragging = false;
+    }
+    
+    public void updatePosition(double mouseX, double mouseY) {
+        if (isDragging) {
+            hudX = (int) (mouseX - dragOffsetX);
+            hudY = (int) (mouseY - dragOffsetY);
+        }
+    }
 
     public void setMaterialId(int materialId) {
         this.materialId = materialId;
@@ -178,6 +228,17 @@ public class OccupiedItemsHUD implements HudRenderCallback {
     public void onHudRender(DrawContext context, RenderTickCounter tickCounter) {
         // 更新已领取的项目
         updateOccupiedItems();
+        
+        // 更新拖动位置
+        if (OccupiedItemsHUD.getInstance().isDragging()) {
+            // 获取当前鼠标位置并更新HUD位置
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (client.mouse != null) {
+                double mouseX = client.mouse.getX() * client.getWindow().getScaledWidth() / client.getWindow().getWidth();
+                double mouseY = client.mouse.getY() * client.getWindow().getScaledHeight() / client.getWindow().getHeight();
+                OccupiedItemsHUD.getInstance().updatePosition(mouseX, mouseY);
+            }
+        }
         
         if (!occupiedItems.isEmpty()) {
             MinecraftClient client = MinecraftClient.getInstance();
