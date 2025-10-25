@@ -407,6 +407,10 @@ public class MaterialsDash extends Screen {
             
             // 绘制文本
             String displayText = String.format("%s *%d", material.name, material.count);
+            // 如果项目已完成，添加删除线效果
+            if (material.done == 1) {
+                displayText = "§m" + displayText; // Minecraft中的删除线格式代码
+            }
             context.drawTextWithShadow(textRenderer, displayText, 25, itemY + 10, textColor);
 
         }
