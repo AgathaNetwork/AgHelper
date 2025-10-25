@@ -59,7 +59,7 @@ public class OccupiedItemsHUD implements HudRenderCallback {
         // 检查是否点击在HUD上
         int yPosition = hudY;
         for (int i = 0; i < occupiedItems.size() && i < 5; i++) {
-            String text = "已领取: " + occupiedItems.get(i);
+            String text = occupiedItems.get(i);
             int textWidth = client.textRenderer.getWidth(text);
             int xPosition = hudX - textWidth / 2;
             
