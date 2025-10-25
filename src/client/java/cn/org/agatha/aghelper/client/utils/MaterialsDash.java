@@ -2,6 +2,7 @@ package cn.org.agatha.aghelper.client.utils;
 
 import cn.org.agatha.aghelper.client.AghelperClient;
 import cn.org.agatha.aghelper.client.MenuScreen;
+import cn.org.agatha.aghelper.client.utils.OccupiedItemsHUD;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -310,6 +311,9 @@ public class MaterialsDash extends Screen {
                             button.active = true;
                             // 重新添加按钮以更新按钮状态
                             updateButtons();
+                            
+                            // 显示HUD通知
+                            OccupiedItemsHUD.getInstance().addOccupiedItem(material.name + " *" + material.count);
                         });
                     }
                 } else {
@@ -351,6 +355,9 @@ public class MaterialsDash extends Screen {
                         button.active = true;
                         // 重新添加按钮以更新按钮状态
                         updateButtons();
+                        
+                        // 从HUD中移除通知
+                        OccupiedItemsHUD.getInstance().removeOccupiedItem(material.name + " *" + material.count);
                     });
                 } else {
                     throw new IOException("HTTP Error: " + responseCode);
