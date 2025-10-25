@@ -198,7 +198,7 @@ public class MaterialsList extends Screen {
     private boolean isMouseOverItem(int mouseX, int mouseY, int itemY) {
         // 考虑滚动偏移量和位置调整
         int adjustedMouseY = (int) (mouseY + currentScrollY);
-        return mouseX >= 30 && mouseX <= width - 50 && 
+        return mouseX >= 30 && mouseX <= width - 35 &&
                adjustedMouseY >= itemY && adjustedMouseY <= itemY + ITEM_HEIGHT;
     }
 
