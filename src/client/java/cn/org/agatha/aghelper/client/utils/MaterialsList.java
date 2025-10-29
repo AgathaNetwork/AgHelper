@@ -184,16 +184,16 @@ public class MaterialsList extends Screen {
 
         super.render(context, mouseX, mouseY, delta);
         // 渲染标题
-        context.drawText(textRenderer, "材料列表选择", width / 2 - textRenderer.getWidth("材料列表选择") / 2, 15, 0xFFFFFF, true);
+        context.drawText(textRenderer, "材料列表选择", width / 2 - textRenderer.getWidth("材料列表选择") / 2, 15, 0xFFFFFFFF, true);
         
         if (loading) {
             // 显示加载中
             context.drawTextWithShadow(textRenderer, "加载中...", 
-                (width - textRenderer.getWidth("加载中...")) / 2, height / 2, 0xFFFFFF);
+                (width - textRenderer.getWidth("加载中...")) / 2, height / 2, 0xFFFFFFFF);
         } else if (errorMessage != null) {
             // 显示错误信息
             context.drawTextWithShadow(textRenderer, errorMessage, 
-                (width - textRenderer.getWidth(errorMessage)) / 2, height / 2, 0xFF5555);
+                (width - textRenderer.getWidth(errorMessage)) / 2, height / 2, 0xFFFF5555);
         } else {
             // 渲染材料列表
             renderMaterialList(context, mouseX, mouseY);
@@ -203,7 +203,7 @@ public class MaterialsList extends Screen {
             if (totalPages > 0) {
                 String pageText = String.format("第 %d/%d 页", currentPage + 1, totalPages);
                 context.drawTextWithShadow(textRenderer, pageText, 
-                    width / 2 - textRenderer.getWidth(pageText) / 2, height - 50, 0xFFFFFF);
+                    width / 2 - textRenderer.getWidth(pageText) / 2, height - 50, 0xFFFFFFFF);
             }
         }
 
@@ -232,7 +232,7 @@ public class MaterialsList extends Screen {
             
             // 绘制文本
             String displayText = String.format("%s (%s)", material.name, material.uploader);
-            context.drawTextWithShadow(textRenderer, displayText, 35, itemY + 10, 0xFFFFFF);
+            context.drawTextWithShadow(textRenderer, displayText, 35, itemY + 10, 0xFFFFFFFF);
             
             // 在条目右侧绘制"选择"按钮
             int buttonX = itemWidth - 60;
@@ -253,7 +253,7 @@ public class MaterialsList extends Screen {
             String buttonText = "选择";
             int textX = buttonX + (buttonWidth - textRenderer.getWidth(buttonText)) / 2;
             int textY = buttonY + (buttonHeight - textRenderer.fontHeight) / 2;
-            context.drawTextWithShadow(textRenderer, buttonText, textX, textY, 0xFFFFFF);
+            context.drawTextWithShadow(textRenderer, buttonText, textX, textY, 0xFFFFFFFF);
         }
     }
 

@@ -85,7 +85,7 @@ public class ShareInventory extends Screen {
             "对方玩家同意后，才可查看背包。",
             width/2,
             textY,
-            0xFFFFFF
+            0xFFFFFFFF
         );
     }
 

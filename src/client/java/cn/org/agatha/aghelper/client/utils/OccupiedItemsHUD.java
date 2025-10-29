@@ -266,7 +266,7 @@ public class OccupiedItemsHUD implements HudRenderCallback {
                 context.fill(xPosition - 3, yPosition - 1, xPosition + textWidth + 3, yPosition + 9, 
                            0xAA222222); // 半透明黑色背景
                 context.drawTextWithShadow(client.textRenderer, text, xPosition, yPosition, 
-                                         0xFFFFFF); // 白色文字
+                                         0xFFFFFFFF); // 白色文字
                 
                 yPosition -= 12;
             }

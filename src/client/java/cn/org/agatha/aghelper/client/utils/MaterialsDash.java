@@ -497,17 +497,17 @@ public class MaterialsDash extends Screen {
         
         // 在页面顶部居中显示状态
         int textWidth = textRenderer.getWidth(statusText);
-        context.drawText(textRenderer, statusText, (width - textWidth) / 2, 40, 0xFFFFFF, true);
+        context.drawText(textRenderer, statusText, (width - textWidth) / 2, 40, 0xFFFFFFFF, true);
         
         // 显示材料详情
         if (loading) {
             // 显示加载中
             context.drawTextWithShadow(textRenderer, "加载中...", 
-                (width - textRenderer.getWidth("加载中...")) / 2, height / 2, 0xFFFFFF);
+                (width - textRenderer.getWidth("加载中...")) / 2, height / 2, 0xFFFFFFFF);
         } else if (errorMessage != null) {
             // 显示错误信息
             context.drawTextWithShadow(textRenderer, errorMessage, 
-                (width - textRenderer.getWidth(errorMessage)) / 2, height / 2, 0xFF5555);
+                (width - textRenderer.getWidth(errorMessage)) / 2, height / 2, 0xFFFF5555);
         } else if (!materials.isEmpty()) {
             // 渲染材料列表
             renderMaterialList(context, mouseX, mouseY);
@@ -517,12 +517,12 @@ public class MaterialsDash extends Screen {
             if (totalPages > 0) {
                 String pageText = String.format("第 %d/%d 页", currentPage + 1, totalPages);
                 context.drawTextWithShadow(textRenderer, pageText, 
-                    width / 2 - textRenderer.getWidth(pageText) / 2, height - 50, 0xFFFFFF);
+                    width / 2 - textRenderer.getWidth(pageText) / 2, height - 50, 0xFFFFFFFF);
             }
         } else if (AghelperClient.selectedMaterialId != -1) {
             // 显示无数据提示信息
             context.drawTextWithShadow(textRenderer, "该材料列表暂无数据", 
-                (width - textRenderer.getWidth("该材料列表暂无数据")) / 2, height / 2, 0xFFFFFF);
+                (width - textRenderer.getWidth("该材料列表暂无数据")) / 2, height / 2, 0xFFFFFFFF);
         }
 
     }
@@ -549,7 +549,7 @@ public class MaterialsDash extends Screen {
             drawBorder(context, 20, itemY, itemWidth - 20, ITEM_HEIGHT, 0xFFFFFFFF);
             
             // 根据完成状态设置文本颜色
-            int textColor = material.done == 1 ? 0x888888 : 0xFFFFFF; // 已完成的条目用灰色显示
+            int textColor = material.done == 1 ? 0xFF888888 : 0xFFFFFFFF; // 已完成的条目用灰色显示
             
             // 绘制文本
             String displayText = String.format("%s *%d", material.name, material.count);
@@ -565,7 +565,7 @@ public class MaterialsDash extends Screen {
                 int occupiedTextWidth = textRenderer.getWidth(occupiedByText);
                 // 从右侧按钮的左侧开始计算位置，确保不会重叠
                 int occupiedTextX = width - 150 - occupiedTextWidth - 5;
-                context.drawTextWithShadow(textRenderer, occupiedByText, occupiedTextX, itemY + 10, 0xFFFF00); // 黄色显示
+                context.drawTextWithShadow(textRenderer, occupiedByText, occupiedTextX, itemY + 10, 0xFFFFFF00); // 黄色显示
             }
         }
     }

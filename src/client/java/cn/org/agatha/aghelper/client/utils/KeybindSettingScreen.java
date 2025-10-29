@@ -79,7 +79,7 @@ public class KeybindSettingScreen extends Screen {
                 "按下目标按键",
                 width/2, 
                 height/2 - 80,
-                0xFFFFFF
+                0xFFFFFFFF
             );
         }
         else{
@@ -88,7 +88,7 @@ public class KeybindSettingScreen extends Screen {
                 promptText,
                 width/2,
                 height/2 - 80,
-                0xFFFFFF
+                0xFFFFFFFF
             );
         }
     }

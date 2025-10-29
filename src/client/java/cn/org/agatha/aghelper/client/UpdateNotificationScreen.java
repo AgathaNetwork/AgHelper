@@ -45,7 +45,7 @@ public class UpdateNotificationScreen extends Screen {
             "AgHelper更新完成",
             this.width / 2, 
             this.height / 2 - 60, 
-            0xFFFFFF);
+            0xFFFFFFFF);
 
         // 显示提示信息
         drawTextLines(context, new String[] {
@@ -60,7 +60,7 @@ public class UpdateNotificationScreen extends Screen {
             "注意：请在关闭游戏后再删除旧文件，否则可能导致文件被占用无法删除",
             this.width / 2,
             this.height / 2 + 60,
-            0xFFFF00);
+            0xFFFFFF00);
     }
 
     private void drawTextLines(DrawContext context, String[] lines, int startY) {
@@ -69,7 +69,7 @@ public class UpdateNotificationScreen extends Screen {
                 lines[i], 
                 this.width / 2, 
                 startY + i * 12, 
-                0xFFFFFF);
+                0xFFFFFFFF);
         }
     }
 

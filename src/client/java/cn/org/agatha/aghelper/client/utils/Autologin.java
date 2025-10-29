@@ -83,7 +83,7 @@ public class Autologin extends Screen {
         super.render(context, mouseX, mouseY, delta);
 
         // 绘制标题
-        context.drawCenteredTextWithShadow(textRenderer, "快速登录设置", width / 2, height / 2 - 80, 0xFFFFFF);
+        context.drawCenteredTextWithShadow(textRenderer, "快速登录设置", width / 2, height / 2 - 80, 0xFFFFFFFF);
 
         // 绘制当前设置的自动登录信息（表格形式）
         int tableX = width / 2 - 150; // 表格左上角X坐标

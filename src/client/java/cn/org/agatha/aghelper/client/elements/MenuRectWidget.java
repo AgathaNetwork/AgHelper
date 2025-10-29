@@ -73,7 +73,7 @@ public class MenuRectWidget extends PressableWidget {
 
         // 绘制文字
         if (displayText != null) {
-            drawContext.drawText(client.textRenderer, displayText, contentX, contentY, 0xFFFFFF, false);
+            drawContext.drawText(client.textRenderer, Text.of(displayText), contentX, contentY, 0xFFFFFFFF, true);
         }
     }
 
