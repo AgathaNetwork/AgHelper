@@ -9,14 +9,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.text.Text;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.minecraft.util.Formatting;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.api.FabricLoader;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Objects;
 
 public class MenuScreen extends Screen {
@@ -31,21 +25,20 @@ public class MenuScreen extends Screen {
         ItemStack bookStack = new ItemStack(Items.WRITTEN_BOOK);
         ItemStack bookShelfStack = new ItemStack(Items.BOOKSHELF);
         ItemStack compassStack = new ItemStack(Items.COMPASS);
-        ItemStack targetStack = new ItemStack(Items.TARGET);
         ItemStack playerHeadStack = new ItemStack(Items.PLAYER_HEAD);
         ItemStack paperStack = new ItemStack(Items.PAPER);
 
-        MenuRectWidget KeybindSettingButton = new MenuRectWidget(
+        MenuRectWidget MaterialsButton = new MenuRectWidget(
                 width/2-75, height/2-30, 70, 20,
-                Text.literal("快捷键设置"),
-                targetStack,
+                Text.literal("材料列表"),
+                paperStack,
                 0xFF808080, // 绿色背景
                 () -> {
                     assert this.client != null;
-                    this.client.setScreen(new KeybindSettingScreen());
+                    this.client.setScreen(new MaterialsDash());
                 }
         );
-        addDrawableChild(KeybindSettingButton);
+        addDrawableChild(MaterialsButton);
 
         MenuRectWidget ConnectionDiagnoseButton = new MenuRectWidget(
                 width/2+5, height/2-30, 70, 20,
@@ -108,46 +101,6 @@ public class MenuScreen extends Screen {
         );
         addDrawableChild(OnlineStatisticsButton);
 
-        MenuRectWidget MaterialsButton = new MenuRectWidget(
-                width/2-75, height/2+60, 70, 20,
-                Text.literal("材料列表"),
-                paperStack,
-                0xFF696969, // 绿色背景
-                () -> {
-                    assert this.client != null;
-                    this.client.setScreen(new MaterialsDash());
-                }
-        );
-        addDrawableChild(MaterialsButton);
-
-        // 判断是不是主服或测试服
-        String thisServerIp = Objects.requireNonNull(MinecraftClient.getInstance().getCurrentServerEntry()).address;
-        if (thisServerIp.equalsIgnoreCase("agatha.org.cn")) {
-            // 当前服务器是主服
-            MenuRectWidget switchServerButton = new MenuRectWidget(
-                    width/2+5, height/2+60, 70, 20,
-                    Text.literal("去测试服"),
-                    new ItemStack(Items.ELYTRA),
-                    0xFF808080, // 绿色背景
-                    () -> {
-                        Objects.requireNonNull(MinecraftClient.getInstance().getNetworkHandler()).sendChatCommand("safequit DMS_QUITTING_MAIN_SERVER");
-                    }
-            );
-            addDrawableChild(switchServerButton);
-        }
-        else if (thisServerIp.equalsIgnoreCase("doris.agatha.org.cn")){
-            // 当前服务器是主服
-            MenuRectWidget switchServerButton = new MenuRectWidget(
-                    width/2+5, height/2+60, 70, 20,
-                    Text.literal("回主服"),
-                    new ItemStack(Items.ELYTRA),
-                    0xFF808080, // 绿色背景
-                    () -> {
-                        Objects.requireNonNull(MinecraftClient.getInstance().getNetworkHandler()).sendChatCommand("safequit DMS_QUITTING_DORIS");
-                    }
-            );
-            addDrawableChild(switchServerButton);
-        }
 
         ScreenEvents.afterRender(this).register((_screen, drawContext, mouseX, mouseY, tickDelta) -> {
 
