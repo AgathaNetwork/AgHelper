@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.network.ServerAddress;
@@ -71,9 +72,7 @@ public class AghelperClient implements ClientModInitializer {
                 return true;
             });
         });
-        
-        // 检查更新
-        checkForUpdates();
+
 
         // 如果配置文件不存在
         if (!CONFIG_PATH.toFile().exists()) {
@@ -100,12 +99,35 @@ public class AghelperClient implements ClientModInitializer {
                 config.createPictureKey,
                 CATEGORY
         ));
+
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
-            client.execute(() -> {
-                ServerInfo serverInfo = new ServerInfo("Agatha纯净生存", "cd.agatha.org.cn", ServerInfo.ServerType.OTHER);
-                // 连接到服务器
-                ConnectScreen.connect(client.currentScreen, client, ServerAddress.parse("cd.agatha.org.cn"), serverInfo,  false, null);
-            });
+            try {
+                // 获取当前版本
+                String currentVersion = getCurrentModVersion();
+                logMessage("当前版本: " + currentVersion);
+
+                // 获取最新版本
+                String latestVersion = getLatestVersion();
+                logMessage("最新版本: " + latestVersion);
+
+                // 如果版本不匹配，执行更新
+                if (!currentVersion.equals(latestVersion)) {
+                    logMessage("发现新版本，准备更新...");
+                    updateMod(latestVersion);
+                } else {
+                    logMessage("当前已是最新版本");
+
+                    MinecraftClient.getInstance().execute(() -> {
+                        ServerInfo serverInfo = new ServerInfo("Agatha纯净生存", "cd.agatha.org.cn", ServerInfo.ServerType.OTHER);
+                        // 连接到服务器
+                        ConnectScreen.connect(MinecraftClient.getInstance().currentScreen, MinecraftClient.getInstance(), ServerAddress.parse("cd.agatha.org.cn"), serverInfo,  false, null);
+                    });
+                }
+            } catch (Exception e) {
+                logMessage("检查更新时出错: " + e.getMessage());
+                e.printStackTrace();
+            }
+
         });
 
         // 注册客户端tick监听
@@ -120,6 +142,7 @@ public class AghelperClient implements ClientModInitializer {
                 performAutologin();
             }
         });
+
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
 
             if (createPictureKeyBinding.wasPressed()) {
@@ -167,39 +190,11 @@ public class AghelperClient implements ClientModInitializer {
     }
 
     /**
-     * 检查更新并在后台执行更新过程
-     */
-    private void checkForUpdates() {
-        CompletableFuture.runAsync(() -> {
-            try {
-                // 获取当前版本
-                String currentVersion = getCurrentModVersion();
-                logMessage("当前版本: " + currentVersion);
-                
-                // 获取最新版本
-                String latestVersion = getLatestVersion();
-                logMessage("最新版本: " + latestVersion);
-                
-                // 如果版本不匹配，执行更新
-                if (!currentVersion.equals(latestVersion)) {
-                    logMessage("发现新版本，准备更新...");
-                    updateMod(currentVersion, latestVersion);
-                } else {
-                    logMessage("当前已是最新版本");
-                }
-            } catch (Exception e) {
-                logMessage("检查更新时出错: " + e.getMessage());
-                e.printStackTrace();
-            }
-        });
-    }
-
-    /**
      * 记录日志消息
      * @param message 要记录的消息
      */
     private void logMessage(String message) {
-        System.out.println(message);
+        System.out.println("[AgHelper] " + message);
     }
 
     /**
@@ -241,10 +236,9 @@ public class AghelperClient implements ClientModInitializer {
 
     /**
      * 更新模组到最新版本
-     * @param currentVersion 当前版本
      * @param latestVersion 最新版本
      */
-    private void updateMod(String currentVersion, String latestVersion) {
+    private void updateMod(String latestVersion) {
         try {
             
             // 构造下载URL
@@ -265,8 +259,14 @@ public class AghelperClient implements ClientModInitializer {
             
             // 显示更新通知窗口
             if (currentModFile != null) {
-                MinecraftClient.getInstance().execute(() -> {
-                    MinecraftClient.getInstance().setScreen(new UpdateNotificationScreen(currentModFile, latestVersion));
+                logMessage("显示更新通知窗口");
+
+                ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+                    if (screen instanceof TitleScreen) {
+                        client.execute(() -> {
+                            client.setScreen(new UpdateNotificationScreen(currentModFile, latestVersion));
+                        });
+                    }
                 });
             }
 

@@ -37,7 +37,7 @@ public class UpdateNotificationScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-//        this.renderBackground(context);
+
         super.render(context, mouseX, mouseY, delta);
 
         // 显示标题
