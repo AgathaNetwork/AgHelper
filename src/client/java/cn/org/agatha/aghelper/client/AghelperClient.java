@@ -56,15 +56,16 @@ public class AghelperClient implements ClientModInitializer {
         
         // 注册鼠标事件监听器
         ScreenEvents.BEFORE_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            ScreenMouseEvents.beforeMouseClick(screen).register((screen1, mouseX, mouseY, button) -> {
+            ScreenMouseEvents.beforeMouseClick(screen).register((screen1, mouse) -> {
                 // 检查是否点击在HUD区域内
-                if (OccupiedItemsHUD.getInstance().isMouseOver(mouseX, mouseY)) {
-                    OccupiedItemsHUD.getInstance().startDragging(mouseX, mouseY);
+                if (OccupiedItemsHUD.getInstance().isMouseOver(mouse.x(), mouse.y())) {
+                    OccupiedItemsHUD.getInstance().startDragging(mouse.x(), mouse.y());
                 }
             });
             
-            ScreenMouseEvents.afterMouseRelease(screen).register((screen1, mouseX, mouseY, button) -> {
+            ScreenMouseEvents.afterMouseRelease(screen).register((screen1, mouse, button) -> {
                 OccupiedItemsHUD.getInstance().stopDragging();
+                return true;
             });
         });
         
@@ -162,7 +163,7 @@ public class AghelperClient implements ClientModInitializer {
                         int x = (int) Math.floor(client.player.getX());
                         int y = (int) Math.floor(client.player.getY());
                         int z = (int) Math.floor(client.player.getZ());
-                        String worldName = client.player.getWorld().getRegistryKey().getValue().getPath();
+                        String worldName = client.player.clientWorld.getRegistryKey().getValue().getPath();
                         client.setScreen(new CreatePicture(filename, x, y, z, worldName));
                     }
                 }

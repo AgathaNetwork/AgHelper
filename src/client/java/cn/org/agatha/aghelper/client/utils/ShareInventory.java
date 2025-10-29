@@ -65,7 +65,7 @@ public class ShareInventory extends Screen {
             String currentPlayerName = client.player.getName().getString();
 
             for (net.minecraft.client.network.PlayerListEntry entry : playerList) {
-                String playerName = entry.getProfile().getName();
+                String playerName = entry.getProfile().name();
                 if (!playerName.equals(currentPlayerName)) {
                     players.add(playerName);
                 }

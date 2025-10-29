@@ -130,7 +130,7 @@ public class CreatePicture_2 extends Screen {
         if (client.getNetworkHandler() != null){
             Collection<PlayerListEntry> playerList = client.getNetworkHandler().getPlayerList();
             for (PlayerListEntry entry : playerList){
-                String playerName = URLEncoder.encode(entry.getProfile().getName(), StandardCharsets.UTF_8);
+                String playerName = URLEncoder.encode(entry.getProfile().name(), StandardCharsets.UTF_8);
                 onlinePlayers.add(playerName);
             }
         }
