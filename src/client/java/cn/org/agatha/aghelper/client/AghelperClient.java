@@ -13,22 +13,18 @@ import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
-import net.minecraft.client.input.Input;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.network.ServerAddress;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.ScreenshotRecorder;
-import net.minecraft.text.KeybindTextContent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
-import net.minecraft.client.option.KeyBinding.Category;
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -36,10 +32,10 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Stream;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 
 
 public class AghelperClient implements ClientModInitializer {
@@ -128,21 +124,38 @@ public class AghelperClient implements ClientModInitializer {
 
             if (createPictureKeyBinding.wasPressed()) {
 
-                String fileItself = "aghelper_" + System.currentTimeMillis() + ".png";
-                String filename = "gallery/" + fileItself;
+                // 获取运行目录
+                Path runDirectory = client.runDirectory.toPath();
 
-                // 确保目录存在
-                File screenshotFile = new File(client.runDirectory, filename);
+                Path screenshotDir = runDirectory.resolve("gallery");
 
-                screenshotFile.getParentFile().mkdirs();
+                try {
+                    Files.createDirectories(screenshotDir);
+                } catch (IOException e) {
+                    throw new RuntimeException("无法创建截图目录", e);
+                }
+                String fileName = "ag_" + System.currentTimeMillis() + ".png";
+                ScreenshotRecorder.takeScreenshot(client.getFramebuffer(), screenshot -> {
+                    try {
+                        // 生成文件名
 
-                ScreenshotRecorder.saveScreenshot(screenshotFile, client.getFramebuffer(), (Text callback) ->{});
+                        Path screenshotPath = screenshotDir.resolve(fileName);
 
+                        // 保存截图
+                        screenshot.writeTo(screenshotPath);
+
+                    } catch (IOException ignored) {
+                    }
+                });
+
+                String relativePathString = "gallery/" + fileName;
+
+                assert client.player != null;
                 int x = (int) Math.floor(client.player.getX());
                 int y = (int) Math.floor(client.player.getY());
                 int z = (int) Math.floor(client.player.getZ());
                 String worldName = client.player.getEntityWorld().getRegistryKey().getValue().getPath();
-                client.setScreen(new CreatePicture(filename, x, y, z, worldName));
+                client.setScreen(new CreatePicture(relativePathString, x, y, z, worldName));
 
 
 
