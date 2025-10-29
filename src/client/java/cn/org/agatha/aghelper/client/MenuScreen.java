@@ -4,6 +4,7 @@ import cn.org.agatha.aghelper.client.elements.MenuRectWidget;
 import cn.org.agatha.aghelper.client.utils.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
 import net.minecraft.client.network.ServerAddress;
@@ -124,16 +125,16 @@ public class MenuScreen extends Screen {
         addDrawableChild(MaterialsButton);
 
         // 判断是不是主服或测试服
-        String thisServerIp = MinecraftClient.getInstance().getCurrentServerEntry().address;
+        String thisServerIp = Objects.requireNonNull(MinecraftClient.getInstance().getCurrentServerEntry()).address;
         if (thisServerIp.equalsIgnoreCase("agatha.org.cn")) {
             // 当前服务器是主服
             MenuRectWidget switchServerButton = new MenuRectWidget(
-                    width/2+5, height/2+30, 70, 20,
+                    width/2+5, height/2+60, 70, 20,
                     Text.literal("去测试服"),
                     new ItemStack(Items.ELYTRA),
-                    0xFF696969, // 绿色背景
+                    0xFF808080, // 绿色背景
                     () -> {
-                        MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("safequit DMS_QUITTING_MAIN_SERVER");
+                        Objects.requireNonNull(MinecraftClient.getInstance().getNetworkHandler()).sendChatCommand("safequit DMS_QUITTING_MAIN_SERVER");
                     }
             );
             addDrawableChild(switchServerButton);
@@ -141,12 +142,12 @@ public class MenuScreen extends Screen {
         else if (thisServerIp.equalsIgnoreCase("doris.agatha.org.cn")){
             // 当前服务器是主服
             MenuRectWidget switchServerButton = new MenuRectWidget(
-                    width/2+5, height/2+30, 70, 20,
+                    width/2+5, height/2+60, 70, 20,
                     Text.literal("回主服"),
                     new ItemStack(Items.ELYTRA),
-                    0xFF696969, // 绿色背景
+                    0xFF808080, // 绿色背景
                     () -> {
-                        MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("safequit DMS_QUITTING_DORIS");
+                        Objects.requireNonNull(MinecraftClient.getInstance().getNetworkHandler()).sendChatCommand("safequit DMS_QUITTING_DORIS");
                     }
             );
             addDrawableChild(switchServerButton);
@@ -168,6 +169,7 @@ public class MenuScreen extends Screen {
             // 新增：右下角显示版本号
             String version = "©Agatha v" + getModVersion();
             int textWidth = MinecraftClient.getInstance().textRenderer.getWidth(version);
+
             drawContext.drawText(
                     MinecraftClient.getInstance().textRenderer,
                 version,
@@ -205,7 +207,7 @@ public class MenuScreen extends Screen {
                 }
 
             }
-            catch (Exception e) {
+            catch (Exception ignored) {
             }
 
         }).start();
@@ -230,6 +232,7 @@ public class MenuScreen extends Screen {
 
     public void renderBackground(DrawContext context) {
         // 绘制深灰色渐变背景
+        assert client != null;
         int width = client.getWindow().getScaledWidth();
         int height = client.getWindow().getScaledHeight();
 

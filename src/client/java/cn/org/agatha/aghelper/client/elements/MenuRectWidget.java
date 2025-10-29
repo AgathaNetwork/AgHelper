@@ -1,6 +1,5 @@
 package cn.org.agatha.aghelper.client.elements;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.PressableWidget;
@@ -14,15 +13,6 @@ public class MenuRectWidget extends PressableWidget {
     private ItemStack itemStack; // 可选的物品图标
     private Runnable clickHandler;
     private boolean showItem;
-
-    // 构造函数 - 仅文字
-    public MenuRectWidget(int x, int y, int width, int height, Text text, int color, Runnable onPress) {
-        super(x, y, width, height, text);
-        this.displayText = text;
-        this.fillColor = color;
-        this.clickHandler = onPress;
-        this.showItem = false;
-    }
 
     // 构造函数 - 文字 + 物品图标
     public MenuRectWidget(int x, int y, int width, int height, Text text, ItemStack item, int color, Runnable onPress) {
