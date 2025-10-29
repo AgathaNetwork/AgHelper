@@ -1,8 +1,10 @@
 package cn.org.agatha.aghelper.client.elements;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.PressableWidget;
+import net.minecraft.client.input.AbstractInput;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 
@@ -31,6 +33,26 @@ public class MenuRectWidget extends PressableWidget {
         this.clickHandler = onPress;
         this.showItem = true;
     }
+    public void drawBorder(DrawContext context, int x, int y, int width, int height, int color) {
+        // 绘制边框（通过绘制四条边）
+        int borderWidth = 2;
+
+        // 上边
+        context.fill(x, y, x + width, y + borderWidth, color);
+        // 下边
+        context.fill(x, y + height - borderWidth, x + width, y + height, color);
+        // 左边
+        context.fill(x, y, x + borderWidth, y + height, color);
+        // 右边
+        context.fill(x + width - borderWidth, y, x + width, y + height, color);
+    }
+
+    @Override
+    public void onPress(AbstractInput input) {
+        if (clickHandler != null) {
+            clickHandler.run();
+        }
+    }
 
     @Override
     protected void renderWidget(DrawContext drawContext, int mouseX, int mouseY, float delta) {
@@ -41,7 +63,7 @@ public class MenuRectWidget extends PressableWidget {
 
         // 绘制边框（可选）
         if (this.isHovered()) {
-            drawContext.drawBorder(this.getX(), this.getY(), this.width, this.height, 0xFFFFFFFF);
+            drawBorder(drawContext, this.getX(), this.getY(), this.width, this.height, 0xFFFFFFFF);
         }
 
         // 渲染内容
@@ -62,13 +84,6 @@ public class MenuRectWidget extends PressableWidget {
         // 绘制文字
         if (displayText != null) {
             drawContext.drawText(client.textRenderer, displayText, contentX, contentY, 0xFFFFFF, false);
-        }
-    }
-
-    @Override
-    public void onPress() {
-        if (clickHandler != null) {
-            clickHandler.run();
         }
     }
 

@@ -7,6 +7,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -158,7 +159,19 @@ public class MaterialsList extends Screen {
         
         loaderThread.start();
     }
+    public void drawBorder(DrawContext context, int x, int y, int width, int height, int color) {
+        // 绘制边框（通过绘制四条边）
+        int borderWidth = 2;
 
+        // 上边
+        context.fill(x, y, x + width, y + borderWidth, color);
+        // 下边
+        context.fill(x, y + height - borderWidth, x + width, y + height, color);
+        // 左边
+        context.fill(x, y, x + borderWidth, y + height, color);
+        // 右边
+        context.fill(x + width - borderWidth, y, x + width, y + height, color);
+    }
     private void updateButtons() {
         int totalPages = (int) Math.ceil((double) totalItems / itemsPerPage);
         prevButton.active = currentPage > 0;
@@ -215,7 +228,7 @@ public class MaterialsList extends Screen {
             context.fill(30, itemY, itemWidth, itemY + ITEM_HEIGHT, backgroundColor);
             
             // 绘制边框
-            context.drawBorder(30, itemY, itemWidth - 30, ITEM_HEIGHT, 0xFFFFFFFF);
+            drawBorder(context, 30, itemY, itemWidth - 30, ITEM_HEIGHT, 0xFFFFFFFF);
             
             // 绘制文本
             String displayText = String.format("%s (%s)", material.name, material.uploader);
@@ -234,7 +247,7 @@ public class MaterialsList extends Screen {
             // 根据悬停状态设置按钮颜色
             int buttonColor = isButtonHovered ? 0xFF5555FF : 0xFF333333;
             context.fill(buttonX, buttonY, buttonX + buttonWidth, buttonY + buttonHeight, buttonColor);
-            context.drawBorder(buttonX, buttonY, buttonWidth, buttonHeight, 0xFFFFFFFF);
+            drawBorder(context, buttonX, buttonY, buttonWidth, buttonHeight, 0xFFFFFFFF);
             
             // 绘制按钮文本
             String buttonText = "选择";
@@ -250,9 +263,11 @@ public class MaterialsList extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(Click click, boolean doubled) {
         if (!loading && errorMessage == null) {
             int startY = TOP_MARGIN;
+            double mouseX = click.x();
+            double mouseY = click.y();
             int itemWidth = width - 35;
             
             // 计算当前页的条目范围
@@ -280,7 +295,7 @@ public class MaterialsList extends Screen {
             }
         }
         
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(click, doubled);
     }
 
     public void renderBackground(DrawContext context) {

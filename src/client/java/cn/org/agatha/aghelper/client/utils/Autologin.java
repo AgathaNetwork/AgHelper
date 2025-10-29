@@ -29,6 +29,20 @@ public class Autologin extends Screen {
         loadConfig(); // 加载配置文件中的自动登录信息
     }
 
+    public void drawBorder(DrawContext context, int x, int y, int width, int height, int color) {
+        // 绘制边框（通过绘制四条边）
+        int borderWidth = 2;
+
+        // 上边
+        context.fill(x, y, x + width, y + borderWidth, color);
+        // 下边
+        context.fill(x, y + height - borderWidth, x + width, y + height, color);
+        // 左边
+        context.fill(x, y, x + borderWidth, y + height, color);
+        // 右边
+        context.fill(x + width - borderWidth, y, x + width, y + height, color);
+    }
+
     @Override
     protected void init() {
         super.init();
@@ -80,7 +94,7 @@ public class Autologin extends Screen {
 
         // 绘制表格边框
         context.fill(tableX, tableY, tableX + tableWidth, tableY + tableHeight, 0xFFAAAAAA); // 背景填充
-        context.drawBorder(tableX, tableY, tableWidth, tableHeight, 0xFF000000);             // 边框绘制
+        drawBorder(context, tableX, tableY, tableWidth, tableHeight, 0xFF000000);             // 边框绘制
 
         // 左侧标签和右侧信息（仅显示用户名）
         String[] labels = {"已保存信息"};
@@ -95,7 +109,7 @@ public class Autologin extends Screen {
         // 绘制需要设置的自动登录信息（表格形式）
         tableY += tableHeight + 15; // 新表格起始Y坐标
         context.fill(tableX, tableY, tableX + tableWidth, tableY + tableHeight_Input, 0xFFAAAAAA); // 背景填充
-        context.drawBorder(tableX, tableY, tableWidth, tableHeight_Input, 0xFF000000);             // 边框绘制
+        drawBorder(context, tableX, tableY, tableWidth, tableHeight_Input, 0xFF000000);             // 边框绘制
 
         String playerName = MinecraftClient.getInstance().getSession().getUsername();
 

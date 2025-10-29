@@ -123,7 +123,7 @@ public class Supplies extends Screen {
             }
 
             @Override
-            protected int getContentsHeight() {
+            protected int getContentsHeightWithPadding() {
                 return detailHeight;
             }
 
@@ -133,7 +133,7 @@ public class Supplies extends Screen {
             }
 
             @Override
-            protected void renderContents(DrawContext context, int mouseX, int mouseY, float delta) {
+            protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
                 MinecraftClient.getInstance().execute(() -> {
                     teleportButton.active = false;
                 });
@@ -195,7 +195,7 @@ public class Supplies extends Screen {
             }
 
             @Override
-            protected void renderContents(DrawContext context, int mouseX, int mouseY, float delta) {
+            protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
                 // 在这里渲染您的内容
                 if (loaded){
                     renderScrollableContent(context, mouseX, mouseY, delta);
@@ -203,7 +203,7 @@ public class Supplies extends Screen {
             }
 
             @Override
-            protected int getContentsHeight() {
+            protected int getContentsHeightWithPadding() {
                 // 返回内容的总高度，如果超过容器高度就会显示滚动条
                 return calculateContentHeight();
             }

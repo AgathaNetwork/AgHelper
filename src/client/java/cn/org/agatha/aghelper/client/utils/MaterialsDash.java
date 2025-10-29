@@ -373,7 +373,19 @@ public class MaterialsDash extends Screen {
         
         apiThread.start();
     }
-    
+    public void drawBorder(DrawContext context, int x, int y, int width, int height, int color) {
+        // 绘制边框（通过绘制四条边）
+        int borderWidth = 2;
+
+        // 上边
+        context.fill(x, y, x + width, y + borderWidth, color);
+        // 下边
+        context.fill(x, y + height - borderWidth, x + width, y + height, color);
+        // 左边
+        context.fill(x, y, x + borderWidth, y + height, color);
+        // 右边
+        context.fill(x + width - borderWidth, y, x + width, y + height, color);
+    }
     private void loadMaterialDetails() {
         if (AghelperClient.selectedMaterialId == -1) {
             return;
@@ -534,7 +546,7 @@ public class MaterialsDash extends Screen {
             context.fill(20, itemY, itemWidth, itemY + ITEM_HEIGHT, backgroundColor);
             
             // 绘制边框
-            context.drawBorder(20, itemY, itemWidth - 20, ITEM_HEIGHT, 0xFFFFFFFF);
+            drawBorder(context, 20, itemY, itemWidth - 20, ITEM_HEIGHT, 0xFFFFFFFF);
             
             // 根据完成状态设置文本颜色
             int textColor = material.done == 1 ? 0x888888 : 0xFFFFFF; // 已完成的条目用灰色显示

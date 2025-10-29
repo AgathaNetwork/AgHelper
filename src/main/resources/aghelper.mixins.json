@@ -4,10 +4,10 @@
   "package": "cn.org.agatha.aghelper.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ClientPlayNetworkHandlerMixin"
+    "ClientCommonNetworkHandlerMixin"
   ],
   "client": [
-    "ClientPlayNetworkHandlerMixin"
+    "ClientCommonNetworkHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

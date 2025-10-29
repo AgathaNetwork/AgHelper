@@ -13,10 +13,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientCommonNetworkHandler.class)
-public class ClientPlayNetworkHandlerMixin {
-
+public class ClientCommonNetworkHandlerMixin {
     @Inject(method = "onDisconnected", at = @At("HEAD"))
-    private void captureDisconnectionInfo(DisconnectionInfo info, CallbackInfo ci) {
+    private void onDisconnected(DisconnectionInfo info, CallbackInfo ci) {
         Text reason = info.reason();
         String reasonString = reason.getString();
         if (reasonString.contains("DMS_QUITTING_MAIN_SERVER")){

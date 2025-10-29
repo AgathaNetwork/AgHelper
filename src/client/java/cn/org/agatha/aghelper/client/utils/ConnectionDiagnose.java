@@ -83,7 +83,19 @@ public class ConnectionDiagnose extends Screen {
             }
         });
     }
+    public void drawBorder(DrawContext context, int x, int y, int width, int height, int color) {
+        // 绘制边框（通过绘制四条边）
+        int borderWidth = 2;
 
+        // 上边
+        context.fill(x, y, x + width, y + borderWidth, color);
+        // 下边
+        context.fill(x, y + height - borderWidth, x + width, y + height, color);
+        // 左边
+        context.fill(x, y, x + borderWidth, y + height, color);
+        // 右边
+        context.fill(x + width - borderWidth, y, x + width, y + height, color);
+    }
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderBackground(context);
@@ -97,7 +109,7 @@ public class ConnectionDiagnose extends Screen {
 
         // 绘制表格边框
         context.fill(tableX, tableY, tableX + tableWidth, tableY + tableHeight, 0xFFAAAAAA); // 背景填充
-        context.drawBorder(tableX, tableY, tableWidth, tableHeight, 0xFF000000);             // 边框绘制
+        drawBorder(context, tableX, tableY, tableWidth, tableHeight, 0xFF000000);             // 边框绘制
 
         // 左侧标签
         context.drawText(textRenderer, L1_label, tableX + 20, tableY + 20, 0xFF000000, false);

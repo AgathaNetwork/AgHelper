@@ -5,6 +5,7 @@ import cn.org.agatha.aghelper.client.MenuScreen;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
@@ -49,7 +50,9 @@ public class KeybindSettingScreen extends Screen {
 
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyInput keyInput) {
+        int keyCode = keyInput.getKeycode();
+        int scanCode = keyInput.scancode();
         if (keyCode == GLFW.GLFW_KEY_ESCAPE){
             isCapturing = false;
         }
@@ -59,10 +62,10 @@ public class KeybindSettingScreen extends Screen {
             promptText = "已设置键号：" + keyCode;
 
             // 更新按键绑定
-            AghelperClient.updateKeyBinding(keyCode, targetName, scanCode);
+            AghelperClient.updateKeyBinding(keyInput, targetName);
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(keyInput);
     }
 
     @Override

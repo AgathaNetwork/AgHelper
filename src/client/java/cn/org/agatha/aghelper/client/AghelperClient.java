@@ -15,15 +15,20 @@ import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
+import net.minecraft.client.input.Input;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.network.ServerAddress;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.client.util.ScreenshotRecorder;
+import net.minecraft.text.KeybindTextContent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
-
+import net.minecraft.client.option.KeyBinding.Category;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -35,6 +40,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
+
 
 public class AghelperClient implements ClientModInitializer {
 
@@ -48,6 +54,7 @@ public class AghelperClient implements ClientModInitializer {
     private static final Path CONFIG_PATH = Path.of("config/aghelper.json");
     private static final String VERSION_CHECK_URL = "https://mc.agatha.org.cn/helper/latest";
     private static final String DOWNLOAD_URL_TEMPLATE = "https://mc.agatha.org.cn/helper/AgHelper-%s.jar";
+    private static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("aghelper", "test"));
 
     @Override
     public void onInitializeClient() {
@@ -82,20 +89,20 @@ public class AghelperClient implements ClientModInitializer {
         // 创建菜单快捷键绑定
         menuKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key." + MOD_ID + ".menu_key",
-                config.menuShortcutKey(),
-                "category." + MOD_ID + ".main"
+                config.menuShortcutKey,
+                CATEGORY
         ));
 
         autologinKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key." + MOD_ID + ".autologin_key",
-                config.autologinKey(),
-                "category." + MOD_ID + ".main"
+                config.autologinKey,
+                CATEGORY
         ));
 
         createPictureKeyBinding = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key." + MOD_ID + ".create_picture_key",
-                config.createPictureKey(),
-                "category." + MOD_ID + ".main"
+                config.createPictureKey,
+                CATEGORY
         ));
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
             client.execute(() -> {
@@ -130,40 +137,20 @@ public class AghelperClient implements ClientModInitializer {
                         MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("请先将登录入口切换至agatha.org.cn").formatted(Formatting.RED));
                     }else{
                         // 保存图片frameBuffer，客户端截图到文件
-                        String filename = "gallery/aghelper_" + System.currentTimeMillis() + ".png";
+
+                        String fileItself = "aghelper_" + System.currentTimeMillis() + ".png";
+                        String filename = "gallery/" + fileItself;
 
                         // 确保目录存在
                         File screenshotFile = new File(client.runDirectory, filename);
                         screenshotFile.getParentFile().mkdirs();
 
-                        try {
-                            // 获取帧缓冲区
-                            Framebuffer framebuffer = client.getFramebuffer();
-                            int width = framebuffer.textureWidth;
-                            int height = framebuffer.textureHeight;
+                        ScreenshotRecorder.saveScreenshot(screenshotFile, client.getFramebuffer(), (Text callback) ->{});
 
-                            // 创建原生图像
-                            NativeImage nativeImage = new NativeImage(width, height, false);
-
-                            // 绑定帧缓冲区并读取像素
-                            framebuffer.beginRead();
-                            nativeImage.loadFromTextureImage(0, false);
-                            framebuffer.endRead();
-
-                            // 翻转图像（OpenGL坐标系与图像坐标系不同）
-                            nativeImage.mirrorVertically();
-
-                            // 保存文件
-                            nativeImage.writeTo(screenshotFile);
-                            nativeImage.close();
-
-                        } catch (IOException e) {
-
-                        }
                         int x = (int) Math.floor(client.player.getX());
                         int y = (int) Math.floor(client.player.getY());
                         int z = (int) Math.floor(client.player.getZ());
-                        String worldName = client.player.clientWorld.getRegistryKey().getValue().getPath();
+                        String worldName = client.player.getEntityWorld().getRegistryKey().getValue().getPath();
                         client.setScreen(new CreatePicture(filename, x, y, z, worldName));
                     }
                 }
@@ -352,26 +339,27 @@ public class AghelperClient implements ClientModInitializer {
         }
     }
 
-    public static void updateKeyBinding(int keyCode, String keyName, int scanCode) {
+    public static void updateKeyBinding(KeyInput key, String keyName) {
         ConfigData config = loadConfig();
         int menuShortcutKey = config.menuShortcutKey;
+        int keyCode = key.getKeycode();
         String password = config.password;
         String username = config.username;
         int autologinKey = config.autologinKey;
         int createPictureKey = config.createPictureKey;
         if(keyName.equals("menuShortcutKey")){
             menuShortcutKey = keyCode;
-            menuKeyBinding.setBoundKey(InputUtil.fromKeyCode(keyCode, scanCode));
+            menuKeyBinding.setBoundKey(InputUtil.fromKeyCode(key));
             KeyBinding.updateKeysByCode();
         }
         if(keyName.equals("autologinKey")){
             autologinKey = keyCode;
-            autologinKeyBinding.setBoundKey(InputUtil.fromKeyCode(keyCode, scanCode));
+            autologinKeyBinding.setBoundKey(InputUtil.fromKeyCode(key));
             KeyBinding.updateKeysByCode();
         }
         if(keyName.equals("createPictureKey")){
             createPictureKey = keyCode;
-            createPictureKeyBinding.setBoundKey(InputUtil.fromKeyCode(keyCode, scanCode));
+            createPictureKeyBinding.setBoundKey(InputUtil.fromKeyCode(key));
             KeyBinding.updateKeysByCode();
         }
         saveConfig(new ConfigData(menuShortcutKey, password, username, autologinKey, createPictureKey));
