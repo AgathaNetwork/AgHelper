@@ -106,9 +106,9 @@ public class AghelperClient implements ClientModInitializer {
         ));
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> {
             client.execute(() -> {
-                ServerInfo serverInfo = new ServerInfo("Agatha纯净生存", "agatha.org.cn", ServerInfo.ServerType.OTHER);
+                ServerInfo serverInfo = new ServerInfo("Agatha纯净生存", "cd.agatha.org.cn", ServerInfo.ServerType.OTHER);
                 // 连接到服务器
-                ConnectScreen.connect(client.currentScreen, client, ServerAddress.parse("agatha.org.cn"), serverInfo,  false, null);
+                ConnectScreen.connect(client.currentScreen, client, ServerAddress.parse("cd.agatha.org.cn"), serverInfo,  false, null);
             });
         });
 
@@ -128,32 +128,24 @@ public class AghelperClient implements ClientModInitializer {
 
             if (createPictureKeyBinding.wasPressed()) {
 
-                // 判断登录的服务器地址
-                if (MinecraftClient.getInstance().getCurrentServerEntry() == null) {
-                    MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("当前世界不可用").formatted(Formatting.RED));
-                }
-                else{
-                    if (!MinecraftClient.getInstance().getCurrentServerEntry().address.equals("agatha.org.cn")){
-                        MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("请先将登录入口切换至agatha.org.cn").formatted(Formatting.RED));
-                    }else{
-                        // 保存图片frameBuffer，客户端截图到文件
+                String fileItself = "aghelper_" + System.currentTimeMillis() + ".png";
+                String filename = "gallery/" + fileItself;
 
-                        String fileItself = "aghelper_" + System.currentTimeMillis() + ".png";
-                        String filename = "gallery/" + fileItself;
+                // 确保目录存在
+                File screenshotFile = new File(client.runDirectory, filename);
 
-                        // 确保目录存在
-                        File screenshotFile = new File(client.runDirectory, filename);
-                        screenshotFile.getParentFile().mkdirs();
+                screenshotFile.getParentFile().mkdirs();
 
-                        ScreenshotRecorder.saveScreenshot(screenshotFile, client.getFramebuffer(), (Text callback) ->{});
+                ScreenshotRecorder.saveScreenshot(screenshotFile, client.getFramebuffer(), (Text callback) ->{});
 
-                        int x = (int) Math.floor(client.player.getX());
-                        int y = (int) Math.floor(client.player.getY());
-                        int z = (int) Math.floor(client.player.getZ());
-                        String worldName = client.player.getEntityWorld().getRegistryKey().getValue().getPath();
-                        client.setScreen(new CreatePicture(filename, x, y, z, worldName));
-                    }
-                }
+                int x = (int) Math.floor(client.player.getX());
+                int y = (int) Math.floor(client.player.getY());
+                int z = (int) Math.floor(client.player.getZ());
+                String worldName = client.player.getEntityWorld().getRegistryKey().getValue().getPath();
+                client.setScreen(new CreatePicture(filename, x, y, z, worldName));
+
+
+
             }
         });
 
@@ -241,11 +233,6 @@ public class AghelperClient implements ClientModInitializer {
      */
     private void updateMod(String currentVersion, String latestVersion) {
         try {
-            MinecraftClient.getInstance().execute(() -> {
-                MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(
-                    Text.literal("[AgHelper] 发现新版本 " + latestVersion + "，正在后台更新...")
-                         .formatted(Formatting.YELLOW));
-            });
             
             // 构造下载URL
             String downloadUrl = String.format(DOWNLOAD_URL_TEMPLATE, latestVersion);
