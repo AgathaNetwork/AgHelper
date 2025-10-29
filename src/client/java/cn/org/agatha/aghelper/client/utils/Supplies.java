@@ -3,6 +3,7 @@ package cn.org.agatha.aghelper.client.utils;
 import cn.org.agatha.aghelper.client.MenuScreen;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -91,6 +92,8 @@ public class Supplies extends Screen {
         closePopupButton = ButtonWidget.builder(Text.of("关闭"), button -> showDetailPopup = false)
                 .dimensions(width / 2 - 20, height / 2 + 80, 40, 20)
                 .build();
+        closePopupButton.visible = false; // 初始时不可见
+        this.addDrawableChild(closePopupButton);
 
         // 计算每页可以显示的条目数量
         int availableHeight = height - TOP_MARGIN - BOTTOM_MARGIN;
@@ -218,33 +221,33 @@ public class Supplies extends Screen {
     }
     
     private void updateButtons() {
-        // 清除现有的设施按钮
-        clearFacilityButtons();
+        // 重新计算翻页按钮位置
+        int buttonWidth = 60;
+        int buttonHeight = 20;
+        int buttonY = height - 30;
         
-        // 计算当前页的条目范围
-        int startIndex = currentPage * itemsPerPage;
-        int endIndex = Math.min(startIndex + itemsPerPage, getAllFacilities().size());
+        prevButton.setX(width / 2 - buttonWidth - 5);
+        prevButton.setY(buttonY);
         
-        List<ListData> allFacilities = getAllFacilities();
+        nextButton.setX(width / 2 + 5);
+        nextButton.setY(buttonY);
         
-        // 为当前页的每个设施添加按钮
-        for (int i = startIndex; i < endIndex; i++) {
-            ListData facility = allFacilities.get(i);
-            int itemIndex = i - startIndex;
-            int itemY = TOP_MARGIN + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
-            
-            ButtonWidget facilityButton = ButtonWidget.builder(
-                    Text.literal(facility.content),
-                    button -> showFacilityDetails(facility)
-            ).dimensions(60, itemY, width - 120, ITEM_HEIGHT).build();
-            
-            addDrawableChild(facilityButton);
+        // 更新传送按钮位置
+        teleportButton.setX(width - 60);
+        teleportButton.setY(10);
+        
+        // 更新搜索框大小
+        idInput.setWidth(width - 130);
+        
+        // 更新关闭弹窗按钮位置（如果弹窗正在显示）
+        if (showDetailPopup && hasInfo == 1) {
+            int popupWidth = 300;
+            int popupHeight = 200;
+            int popupX = (width - popupWidth) / 2;
+            int popupY = (height - popupHeight) / 2;
+            closePopupButton.setX(popupX + popupWidth / 2 - 20);
+            closePopupButton.setY(popupY + popupHeight - 30);
         }
-        
-        // 更新翻页按钮状态
-        int totalPages = getTotalPages();
-        prevButton.active = currentPage > 0;
-        nextButton.active = currentPage < totalPages - 1 && loaded;
     }
     
     private void clearFacilityButtons() {
@@ -366,6 +369,9 @@ public class Supplies extends Screen {
         renderBackground(context);
         super.render(context, mouseX, mouseY, delta);
         
+        // 控制关闭按钮的可见性
+        closePopupButton.visible = showDetailPopup && hasInfo == 1;
+        
         // 渲染标题
         context.drawText(textRenderer, "资源设施列表", (width - textRenderer.getWidth("资源设施列表")) / 2, 35, 0xFFFFFFFF, false);
         
@@ -388,61 +394,6 @@ public class Supplies extends Screen {
         if (showDetailPopup && hasInfo == 1) {
             renderDetailPopup(context);
         }
-    }
-    
-    private void renderFacilityList(DrawContext context, int mouseX, int mouseY) {
-        int startY = TOP_MARGIN;
-        
-        // 计算当前页的条目范围
-        int startIndex = currentPage * itemsPerPage;
-        int endIndex = Math.min(startIndex + itemsPerPage, getAllFacilities().size());
-        
-        List<ListData> allFacilities = getAllFacilities();
-        
-        for (int i = startIndex; i < endIndex; i++) {
-            ListData facility = allFacilities.get(i);
-            int itemIndex = i - startIndex;
-            int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
-            
-            // 绘制背景
-            int backgroundColor = isMouseOverItem(mouseX, mouseY, itemY) ? 
-                0x80AAAAAA : 0x80222222;
-            context.fill(60, itemY, width - 60, itemY + ITEM_HEIGHT, backgroundColor);
-            
-            // 绘制边框
-            drawBorder(context, 60, itemY, width - 120, ITEM_HEIGHT, 0xFFFFFFFF);
-            
-            // 绘制文本
-            context.drawText(textRenderer, facility.content, 65, itemY + 6, 0xFFFFFFFF, false);
-            
-            // 绘制状态
-            int statusX = width - 80;
-            if (Objects.equals(facility.status, "1")){
-                context.drawText(textRenderer, "✓", statusX, itemY + 6, 0xFF00FF00, false);
-            }
-            else{
-                context.drawText(textRenderer, "✗", statusX, itemY + 6, 0xFFFF0000, false);
-            }
-        }
-    }
-    
-    private boolean isMouseOverItem(int mouseX, int mouseY, int itemY) {
-        return mouseX >= 60 && mouseX <= width - 60 && 
-               mouseY >= itemY && mouseY <= itemY + ITEM_HEIGHT;
-    }
-    
-    public void drawBorder(DrawContext context, int x, int y, int width, int height, int color) {
-        // 绘制边框（通过绘制四条边）
-        int borderWidth = 1;
-
-        // 上边
-        context.fill(x, y, x + width, y + borderWidth, color);
-        // 下边
-        context.fill(x, y + height - borderWidth, x + width, y + height, color);
-        // 左边
-        context.fill(x, y, x + borderWidth, y + height, color);
-        // 右边
-        context.fill(x + width - borderWidth, y, x + width, y + height, color);
     }
     
     private void renderDetailPopup(DrawContext context) {
@@ -479,10 +430,64 @@ public class Supplies extends Screen {
                     textX + 40, textY + 56 + i * 12, 0xFFFFFFFF, false);
         }
         
-        // 添加关闭按钮
-        addDrawableChild(closePopupButton);
+        // 更新关闭按钮位置
         closePopupButton.setX(popupX + popupWidth / 2 - 20);
         closePopupButton.setY(popupY + popupHeight - 30);
+    }
+    
+    private void renderFacilityList(DrawContext context, int mouseX, int mouseY) {
+        int startY = TOP_MARGIN;
+        
+        // 计算当前页的条目范围
+        int startIndex = currentPage * itemsPerPage;
+        int endIndex = Math.min(startIndex + itemsPerPage, getAllFacilities().size());
+        
+        List<ListData> allFacilities = getAllFacilities();
+        
+        for (int i = startIndex; i < endIndex; i++) {
+            ListData facility = allFacilities.get(i);
+            int itemIndex = i - startIndex;
+            int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
+            
+            // 绘制背景
+            int backgroundColor = isMouseOverItem(mouseX, mouseY, itemY) ? 
+                0x80AAAAAA : 0x80222222;
+            context.fill(60, itemY, width - 60, itemY + ITEM_HEIGHT, backgroundColor);
+            
+            // 绘制边框 (修正宽度计算，应该与背景一致)
+            drawBorder(context, 60, itemY, width - 120, ITEM_HEIGHT, 0xFFFFFFFF);
+            
+            // 绘制文本
+            context.drawText(textRenderer, facility.content, 65, itemY + 6, 0xFFFFFFFF, false);
+            
+            // 绘制状态
+            int statusX = width - 80;
+            if (Objects.equals(facility.status, "1")){
+                context.drawText(textRenderer, "✓", statusX, itemY + 6, 0xFF00FF00, false);
+            }
+            else{
+                context.drawText(textRenderer, "✗", statusX, itemY + 6, 0xFFFF0000, false);
+            }
+        }
+    }
+    
+    private boolean isMouseOverItem(int mouseX, int mouseY, int itemY) {
+        return mouseX >= 60 && mouseX <= width - 60 && 
+               mouseY >= itemY && mouseY <= itemY + ITEM_HEIGHT;
+    }
+    
+    public void drawBorder(DrawContext context, int x, int y, int width, int height, int color) {
+        // 绘制边框（通过绘制四条边）
+        int borderWidth = 1;
+
+        // 上边
+        context.fill(x, y, x + width, y + borderWidth, color);
+        // 下边
+        context.fill(x, y + height - borderWidth, x + width, y + height, color);
+        // 左边
+        context.fill(x, y, x + borderWidth, y + height, color);
+        // 右边
+        context.fill(x + width - borderWidth, y, x + width, y + height, color);
     }
     
     public void renderBackground(DrawContext context) {
@@ -506,6 +511,68 @@ public class Supplies extends Screen {
         if (newItemsPerPage != itemsPerPage) {
             itemsPerPage = newItemsPerPage;
             updateButtons();
+        }
+    }
+    
+    @Override
+    public boolean mouseClicked(Click click, boolean doubled) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+        // 如果弹窗显示中，只处理弹窗内的点击事件
+        if (showDetailPopup && hasInfo == 1) {
+            int popupWidth = 300;
+            int popupHeight = 200;
+            int popupX = (width - popupWidth) / 2;
+            int popupY = (height - popupHeight) / 2;
+            
+            // 检查是否点击了关闭按钮
+            int buttonX = popupX + popupWidth / 2 - 20;
+            int buttonY = popupY + popupHeight - 30;
+            if (mouseX >= buttonX && mouseX <= buttonX + 40 &&
+                mouseY >= buttonY && mouseY <= buttonY + 20) {
+                showDetailPopup = false;
+                return true;
+            }
+            
+            // 检查是否点击了弹窗区域（但不是关闭按钮）
+            if (mouseX >= popupX && mouseX <= popupX + popupWidth &&
+                mouseY >= popupY && mouseY <= popupY + popupHeight) {
+                return true; // 消费点击事件，不传递给后面的内容
+            }
+            
+            // 点击弹窗外部区域也关闭弹窗
+            showDetailPopup = false;
+            return true;
+        }
+        
+        // 处理设施列表项的点击
+        if (loaded) {
+            handleFacilityListClick(mouseX, mouseY);
+        }
+        
+        return super.mouseClicked(click, doubled);
+    }
+    
+    private void handleFacilityListClick(double mouseX, double mouseY) {
+        int startY = TOP_MARGIN;
+        
+        // 计算当前页的条目范围
+        int startIndex = currentPage * itemsPerPage;
+        int endIndex = Math.min(startIndex + itemsPerPage, getAllFacilities().size());
+        
+        List<ListData> allFacilities = getAllFacilities();
+        
+        for (int i = startIndex; i < endIndex; i++) {
+            ListData facility = allFacilities.get(i);
+            int itemIndex = i - startIndex;
+            int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
+            
+            // 检查是否点击了这个设施项（确保与渲染区域一致）
+            if (mouseX >= 60 && mouseX <= width - 60 && 
+                mouseY >= itemY && mouseY <= itemY + ITEM_HEIGHT) {
+                showFacilityDetails(facility);
+                break;
+            }
         }
     }
     
