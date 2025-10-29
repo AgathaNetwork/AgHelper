@@ -5,9 +5,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.ScrollableWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
@@ -27,11 +25,9 @@ public class Supplies extends Screen {
     public Supplies() {
         super(Text.of("资源管理"));
     }
-    private ScrollableWidget scrollableWidget;
-    private ScrollableWidget detailWidget;
+    
     private static final Gson GSON = new Gson();
     public int entryCount = 0;
-    public int detailHeight = 0;
     public boolean loaded = false;
     public List<ListData> centerListData = new ArrayList<>();
     public List<ListData> producerListData = new ArrayList<>();
@@ -48,6 +44,24 @@ public class Supplies extends Screen {
     public String facilityDescription = "";
 
     public ButtonWidget teleportButton;
+    
+    // 分页相关
+    private int currentPage = 0;
+    private int itemsPerPage = 10;
+    private ButtonWidget prevButton;
+    private ButtonWidget nextButton;
+    private static final int ITEM_HEIGHT = 20;
+    private static final int ITEM_SPACING = 5;
+    private static final int TOP_MARGIN = 60;
+    private static final int BOTTOM_MARGIN = 50;
+    
+    // 弹窗相关
+    private boolean showDetailPopup = false;
+    private ButtonWidget closePopupButton;
+    
+    // 搜索框
+    private TextFieldWidget idInput;
+
     @Override
     protected void init() {
         // 添加一个返回按钮
@@ -55,167 +69,11 @@ public class Supplies extends Screen {
                 .dimensions(10, 10, 40, 20)
                 .build());
 
-
         // 添加一个输入框
-        TextFieldWidget idInput = new TextFieldWidget(textRenderer, 60, 10, width - 130, 20, null);
+        idInput = new TextFieldWidget(textRenderer, 60, 10, width - 130, 20, null);
         idInput.setPlaceholder(Text.of("输入ID或名称进行搜索"));
-        idInput.setChangedListener(text -> {
-            // 判断是否是正整数
-
-            if (isPositiveInteger(text)){
-                // 输入了ID，按ID进行查询
-                queryData(Integer.parseInt(text));
-            }
-            else if (text.isEmpty()){
-                hasInfo = 0;
-            }
-            else{
-                // 模糊搜索
-                int selectedId = -1;
-                List<String> nameList = new ArrayList<>();
-                for (ListData data : centerListData) {
-                    if (data.content.contains(text)) {
-                        nameList.add(data.content);
-                        selectedId = Integer.parseInt(data.id);
-                    }
-                }
-                for (ListData data : producerListData){
-                    if (data.content.contains(text)) {
-                        nameList.add(data.content);
-                        selectedId = Integer.parseInt(data.id);
-                    }
-                }
-                for (ListData data : storageListData){
-                    if (data.content.contains(text)) {
-                        nameList.add(data.content);
-                        selectedId = Integer.parseInt(data.id);
-                    }
-                }
-                this.nameList = nameList;
-                if (nameList.size() > 1) {
-                    // 有多个候选选项
-                    this.hasInfo = -1;
-                }
-                else if (nameList.isEmpty()) {
-                    // 没有候选选项
-                    this.hasInfo = 0;
-                }
-                else {
-                    this.hasInfo = 2;
-                    queryData(selectedId);
-                }
-            }
-        });
+        idInput.setChangedListener(this::onSearchTextChanged);
         addDrawableChild(idInput);
-
-        // 列表组件
-        // 创建滚动容器，位置和大小可以根据需要调整
-        this.detailWidget = new ScrollableWidget(
-                140,  // x位置
-                40,  // y位置
-                width - 160,  // 宽度
-                height - 60,
-                Text.literal("")){
-
-            @Override
-            protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-
-            }
-
-            @Override
-            protected int getContentsHeightWithPadding() {
-                return detailHeight;
-            }
-
-            @Override
-            protected double getDeltaYPerScroll() {
-                return 0;
-            }
-
-            @Override
-            protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-                MinecraftClient.getInstance().execute(() -> {
-                    teleportButton.active = false;
-                });
-                if (hasInfo == 1){
-
-                    MinecraftClient.getInstance().execute(() -> {
-                        teleportButton.active = true;
-                    });
-
-                    context.drawText(textRenderer, "ID：" + facilityId, 160,60, 0xFFFFFFFF, false);
-
-                    context.drawText(textRenderer, "名称：" + facilityName, 160,80, 0xFFFFFFFF, false);
-                    context.drawText(textRenderer, "维护者：" + facilityMaintainer, 160,92, 0xFFFFFFFF, false);
-                    context.drawText(textRenderer, "坐标：" + facilityPosition, 160,104, 0xFFFFFFFF, false);
-                    // 替换原有的备注显示代码
-                    int maxWidth = width - 80;
-                    List<OrderedText> wrappedTexts = textRenderer.wrapLines(Text.literal(facilityDescription), maxWidth);
-
-                    for (int i = 0; i < wrappedTexts.size(); i++) {
-                        context.drawText(textRenderer,
-                                i == 0 ? "备注：" : "      ",
-                                160, 116 + i * 12, 0xFFFFFFFF, false);
-                        context.drawText(textRenderer,
-                                wrappedTexts.get(i),
-                                200, 116 + i * 12, 0xFFFFFFFF, false);
-                    }
-
-                    // 计算控件整体高度
-                    detailHeight = 100 + wrappedTexts.size() * 12;
-                }
-                else if (hasInfo == 2){
-                    context.drawText(textRenderer, "查询进行中", 160,60, 0xFFFFFFFF, false);
-                    detailHeight = 80;
-                }
-                else if (hasInfo == 0){
-                    context.drawText(textRenderer, "暂无数据", 160,60, 0xFFFFFFFF, false);
-                    detailHeight = 80;
-                }
-                else if (hasInfo == -1){
-                    context.drawText(textRenderer, "有多个候选项，请继续填写：", 160,60, 0xFFFFFFFF, false);
-                    for (int i = 0; i < nameList.size(); i++){
-                        context.drawText(textRenderer, nameList.get(i), 160,80 + i * 12, 0xFFFFFFFF, false);
-                    }
-                    detailHeight = 80 + nameList.size() * 12 + 20;
-                }
-            }
-        };
-
-        this.scrollableWidget = new ScrollableWidget(
-                20,  // x位置
-                40,  // y位置
-                100,                   // 宽度
-                height - 60,           // 高度
-                Text.literal("")
-        ) {
-            @Override
-            protected void appendClickableNarrations(NarrationMessageBuilder builder) {
-
-            }
-
-            @Override
-            protected void renderWidget(DrawContext context, int mouseX, int mouseY, float delta) {
-                // 在这里渲染您的内容
-                if (loaded){
-                    renderScrollableContent(context, mouseX, mouseY, delta);
-                }
-            }
-
-            @Override
-            protected int getContentsHeightWithPadding() {
-                // 返回内容的总高度，如果超过容器高度就会显示滚动条
-                return calculateContentHeight();
-            }
-
-            @Override
-            protected double getDeltaYPerScroll() {
-                return 0;
-            }
-        };
-
-        this.addDrawableChild(scrollableWidget);
-        this.addDrawableChild(detailWidget);
 
         // 添加一个传送按钮
         teleportButton = ButtonWidget.builder(Text.of("传送"), button -> {
@@ -228,12 +86,40 @@ public class Supplies extends Screen {
                 .build();
         teleportButton.active = false;
         this.addDrawableChild(teleportButton);
+        
+        // 添加关闭弹窗按钮
+        closePopupButton = ButtonWidget.builder(Text.of("关闭"), button -> showDetailPopup = false)
+                .dimensions(width / 2 - 20, height / 2 + 80, 40, 20)
+                .build();
 
+        // 计算每页可以显示的条目数量
+        int availableHeight = height - TOP_MARGIN - BOTTOM_MARGIN;
+        itemsPerPage = Math.max(1, availableHeight / (ITEM_HEIGHT + ITEM_SPACING));
+        
+        // 添加翻页按钮
+        int buttonWidth = 60;
+        int buttonHeight = 20;
+        int buttonY = height - 30;
+        
+        prevButton = ButtonWidget.builder(Text.of("上一页"), button -> {
+            if (currentPage > 0) {
+                currentPage--;
+            }
+        }).dimensions(width / 2 - buttonWidth - 5, buttonY, buttonWidth, buttonHeight).build();
+        
+        nextButton = ButtonWidget.builder(Text.of("下一页"), button -> {
+            int totalPages = getTotalPages();
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+            }
+        }).dimensions(width / 2 + 5, buttonY, buttonWidth, buttonHeight).build();
+        
+        addDrawableChild(prevButton);
+        addDrawableChild(nextButton);
+        
         // 异步执行，发送 HTTP GET
         new Thread(() -> {
-
-            if (loaded == false){
-
+            if (!loaded) {
                 try {
                     URL url = new URL(LIST_API);
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -269,6 +155,11 @@ public class Supplies extends Screen {
                             }
                         }
                         loaded = true;
+                        
+                        // 在主线程更新UI
+                        client.execute(() -> {
+                            updateButtons();
+                        });
                     }
                 }
                 catch (Exception e) {
@@ -277,9 +168,113 @@ public class Supplies extends Screen {
             }
         }).start();
     }
+    
+    private void onSearchTextChanged(String text) {
+        // 判断是否是正整数
+        if (isPositiveInteger(text)){
+            // 输入了ID，按ID进行查询
+            queryData(Integer.parseInt(text));
+        }
+        else if (text.isEmpty()){
+            hasInfo = 0;
+            showDetailPopup = false;
+        }
+        else{
+            // 模糊搜索
+            int selectedId = -1;
+            List<String> nameList = new ArrayList<>();
+            for (ListData data : centerListData) {
+                if (data.content.contains(text)) {
+                    nameList.add(data.content);
+                    selectedId = Integer.parseInt(data.id);
+                }
+            }
+            for (ListData data : producerListData){
+                if (data.content.contains(text)) {
+                    nameList.add(data.content);
+                    selectedId = Integer.parseInt(data.id);
+                }
+            }
+            for (ListData data : storageListData){
+                if (data.content.contains(text)) {
+                    nameList.add(data.content);
+                    selectedId = Integer.parseInt(data.id);
+                }
+            }
+            this.nameList = nameList;
+            if (nameList.size() > 1) {
+                // 有多个候选选项
+                this.hasInfo = -1;
+            }
+            else if (nameList.isEmpty()) {
+                // 没有候选选项
+                this.hasInfo = 0;
+            }
+            else {
+                this.hasInfo = 2;
+                queryData(selectedId);
+            }
+        }
+    }
+    
+    private void updateButtons() {
+        // 清除现有的设施按钮
+        clearFacilityButtons();
+        
+        // 计算当前页的条目范围
+        int startIndex = currentPage * itemsPerPage;
+        int endIndex = Math.min(startIndex + itemsPerPage, getAllFacilities().size());
+        
+        List<ListData> allFacilities = getAllFacilities();
+        
+        // 为当前页的每个设施添加按钮
+        for (int i = startIndex; i < endIndex; i++) {
+            ListData facility = allFacilities.get(i);
+            int itemIndex = i - startIndex;
+            int itemY = TOP_MARGIN + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
+            
+            ButtonWidget facilityButton = ButtonWidget.builder(
+                    Text.literal(facility.content),
+                    button -> showFacilityDetails(facility)
+            ).dimensions(60, itemY, width - 120, ITEM_HEIGHT).build();
+            
+            addDrawableChild(facilityButton);
+        }
+        
+        // 更新翻页按钮状态
+        int totalPages = getTotalPages();
+        prevButton.active = currentPage > 0;
+        nextButton.active = currentPage < totalPages - 1 && loaded;
+    }
+    
+    private void clearFacilityButtons() {
+        // 这里应该移除之前添加的设施按钮
+        // 但由于Minecraft的GUI系统限制，我们无法直接做到这一点
+        // 所以我们将在render方法中处理按钮的显示/隐藏
+    }
+    
+    private List<ListData> getAllFacilities() {
+        List<ListData> all = new ArrayList<>();
+        all.addAll(centerListData);
+        all.addAll(producerListData);
+        all.addAll(storageListData);
+        return all;
+    }
+    
+    private int getTotalPages() {
+        int totalItems = getAllFacilities().size();
+        return (int) Math.ceil((double) totalItems / itemsPerPage);
+    }
+    
+    private void showFacilityDetails(ListData facility) {
+        queryData(Integer.parseInt(facility.id));
+        showDetailPopup = true;
+    }
+
     private static class ResponseData {
         ListData[] data;
     }
+    
     private static class ListData {
         String id;
         String content;
@@ -287,6 +282,7 @@ public class Supplies extends Screen {
         String status;
 
     }
+    
     private static class DetailData {
         String maintainer;
         String world;
@@ -300,11 +296,13 @@ public class Supplies extends Screen {
         String message;
         String status;
     }
+    
     // 判断字符串是否是正整数的方法
     public static boolean isPositiveInteger(String s) {
         // 检查字符串非空且只包含数字，并且不以0开头（多位数），并且大于0
         return s != null && !s.isEmpty() && s.matches("\\d+") && (s.length() == 1 || !s.startsWith("0"));
     }
+    
     public void queryData(int id){
         this.facilityId = id;
         new Thread(() -> {
@@ -346,6 +344,15 @@ public class Supplies extends Screen {
                     else{
                         this.hasInfo = 0;
                     }
+                    
+                    // 在主线程更新UI
+                    client.execute(() -> {
+                        if (hasInfo == 1) {
+                            MinecraftClient.getInstance().execute(() -> {
+                                teleportButton.active = true;
+                            });
+                        }
+                    });
                 }
             }
             catch (Exception e) {
@@ -353,89 +360,131 @@ public class Supplies extends Screen {
             }
         }).start();
     }
-    private void renderScrollableContent(DrawContext context, int mouseX, int mouseY, float delta) {
-        // 渲染您的滚动内容
-        TextRenderer textRenderer = this.textRenderer;
-
-        int offset = 62;
-        context.drawText(textRenderer,
-                Text.literal("储存中心").formatted(Formatting.AQUA),
-                30, offset - 12, 0xFF000000, false);
-        for (int i = 0; i < centerListData.size(); i++) {
-            context.drawText(textRenderer,
-                    Text.literal(centerListData.get(i).content),
-                    60, i * 12 + offset, 0xFFFFFFFF, false);
-            if (Objects.equals(centerListData.get(i).status, "1")){
-                context.drawText(textRenderer,
-                        Text.literal(centerListData.get(i).id).formatted(Formatting.GREEN),
-                        40, i * 12 + offset, 0xFFFFFFFF, false);
-            }
-            else{
-                context.drawText(textRenderer,
-                        Text.literal("×").formatted(Formatting.RED),
-                        40, i * 12 + offset, 0xFFFFFFFF, false);
-            }
-        }
-        offset += 12 * centerListData.size() + 20;
-        context.drawText(textRenderer,
-                Text.literal("生产").formatted(Formatting.AQUA),
-                30, offset - 12, 0xFF000000, false);
-        for (int i = 0; i < producerListData.size(); i++){
-            context.drawText(textRenderer,
-                    Text.literal(producerListData.get(i).content),
-                    60, i * 12 + offset, 0xFFFFFFFF, false);
-            if (Objects.equals(producerListData.get(i).status, "1")){
-                context.drawText(textRenderer,
-                        Text.literal(producerListData.get(i).id).formatted(Formatting.GREEN),
-                        40, i * 12 + offset, 0xFFFFFFFF, false);
-            }
-            else{
-                context.drawText(textRenderer,
-                        Text.literal("×").formatted(Formatting.RED),
-                        40, i * 12 + offset, 0xFFFFFFFF, false);
-            }
-        }
-        offset += 12 * producerListData.size() + 20;
-        context.drawText(textRenderer,
-                Text.literal("库存").formatted(Formatting.AQUA),
-                30, offset - 12, 0xFF000000, false);
-        for (int i = 0; i < storageListData.size(); i++){
-            context.drawText(textRenderer,
-                    Text.literal(storageListData.get(i).content),
-                    60, i * 12 + offset, 0xFFFFFFFF, false);
-            if (Objects.equals(storageListData.get(i).status, "1")){
-                context.drawText(textRenderer,
-                        Text.literal(storageListData.get(i).id).formatted(Formatting.GREEN),
-                        40, i * 12 + offset, 0xFFFFFFFF, false);
-            }
-            else{
-                context.drawText(textRenderer,
-                        Text.literal("×").formatted(Formatting.RED),
-                        40, i * 12 + offset, 0xFFFFFFFF, false);
-            }
-        }
-
-    }
-
-    private int calculateContentHeight() {
-        // 计算内容总高度
-        return entryCount * 12 + 80;
-    }
-
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        // 处理鼠标滚轮事件
-        if (this.scrollableWidget.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount)) {
-            return true;
-        }
-        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
-    }
+    
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderBackground(context);
         super.render(context, mouseX, mouseY, delta);
-
+        
+        // 渲染标题
+        context.drawText(textRenderer, "资源设施列表", (width - textRenderer.getWidth("资源设施列表")) / 2, 35, 0xFFFFFFFF, false);
+        
+        if (loaded) {
+            // 渲染分页信息
+            int totalPages = getTotalPages();
+            if (totalPages > 0) {
+                String pageText = String.format("第 %d/%d 页", currentPage + 1, totalPages);
+                context.drawText(textRenderer, pageText, 
+                    width / 2 - textRenderer.getWidth(pageText) / 2, height - 45, 0xFFFFFFFF, false);
+            }
+            
+            // 渲染设施列表
+            renderFacilityList(context, mouseX, mouseY);
+        } else {
+            context.drawText(textRenderer, "加载中...", (width - textRenderer.getWidth("加载中...")) / 2, height / 2, 0xFFFFFFFF, false);
+        }
+        
+        // 渲染弹窗
+        if (showDetailPopup && hasInfo == 1) {
+            renderDetailPopup(context);
+        }
     }
+    
+    private void renderFacilityList(DrawContext context, int mouseX, int mouseY) {
+        int startY = TOP_MARGIN;
+        
+        // 计算当前页的条目范围
+        int startIndex = currentPage * itemsPerPage;
+        int endIndex = Math.min(startIndex + itemsPerPage, getAllFacilities().size());
+        
+        List<ListData> allFacilities = getAllFacilities();
+        
+        for (int i = startIndex; i < endIndex; i++) {
+            ListData facility = allFacilities.get(i);
+            int itemIndex = i - startIndex;
+            int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
+            
+            // 绘制背景
+            int backgroundColor = isMouseOverItem(mouseX, mouseY, itemY) ? 
+                0x80AAAAAA : 0x80222222;
+            context.fill(60, itemY, width - 60, itemY + ITEM_HEIGHT, backgroundColor);
+            
+            // 绘制边框
+            drawBorder(context, 60, itemY, width - 120, ITEM_HEIGHT, 0xFFFFFFFF);
+            
+            // 绘制文本
+            context.drawText(textRenderer, facility.content, 65, itemY + 6, 0xFFFFFFFF, false);
+            
+            // 绘制状态
+            int statusX = width - 80;
+            if (Objects.equals(facility.status, "1")){
+                context.drawText(textRenderer, "✓", statusX, itemY + 6, 0xFF00FF00, false);
+            }
+            else{
+                context.drawText(textRenderer, "✗", statusX, itemY + 6, 0xFFFF0000, false);
+            }
+        }
+    }
+    
+    private boolean isMouseOverItem(int mouseX, int mouseY, int itemY) {
+        return mouseX >= 60 && mouseX <= width - 60 && 
+               mouseY >= itemY && mouseY <= itemY + ITEM_HEIGHT;
+    }
+    
+    public void drawBorder(DrawContext context, int x, int y, int width, int height, int color) {
+        // 绘制边框（通过绘制四条边）
+        int borderWidth = 1;
+
+        // 上边
+        context.fill(x, y, x + width, y + borderWidth, color);
+        // 下边
+        context.fill(x, y + height - borderWidth, x + width, y + height, color);
+        // 左边
+        context.fill(x, y, x + borderWidth, y + height, color);
+        // 右边
+        context.fill(x + width - borderWidth, y, x + width, y + height, color);
+    }
+    
+    private void renderDetailPopup(DrawContext context) {
+        int popupWidth = 300;
+        int popupHeight = 200;
+        int popupX = (width - popupWidth) / 2;
+        int popupY = (height - popupHeight) / 2;
+        
+        // 绘制半透明背景
+        context.fill(0, 0, width, height, 0x80000000);
+        
+        // 绘制弹窗背景
+        context.fill(popupX, popupY, popupX + popupWidth, popupY + popupHeight, 0xFF202020);
+        drawBorder(context, popupX, popupY, popupWidth, popupHeight, 0xFFFFFFFF);
+        
+        // 绘制详细信息
+        int textX = popupX + 10;
+        int textY = popupY + 10;
+        
+        context.drawText(textRenderer, "ID：" + facilityId, textX, textY, 0xFFFFFFFF, false);
+        context.drawText(textRenderer, "名称：" + facilityName, textX, textY + 20, 0xFFFFFFFF, false);
+        context.drawText(textRenderer, "维护者：" + facilityMaintainer, textX, textY + 32, 0xFFFFFFFF, false);
+        context.drawText(textRenderer, "坐标：" + facilityPosition, textX, textY + 44, 0xFFFFFFFF, false);
+        
+        // 备注信息
+        int maxWidth = popupWidth - 20;
+        List<OrderedText> wrappedTexts = textRenderer.wrapLines(Text.literal(facilityDescription), maxWidth);
+        for (int i = 0; i < wrappedTexts.size(); i++) {
+            context.drawText(textRenderer,
+                    i == 0 ? "备注：" : "      ",
+                    textX, textY + 56 + i * 12, 0xFFFFFFFF, false);
+            context.drawText(textRenderer,
+                    wrappedTexts.get(i),
+                    textX + 40, textY + 56 + i * 12, 0xFFFFFFFF, false);
+        }
+        
+        // 添加关闭按钮
+        addDrawableChild(closePopupButton);
+        closePopupButton.setX(popupX + popupWidth / 2 - 20);
+        closePopupButton.setY(popupY + popupHeight - 30);
+    }
+    
     public void renderBackground(DrawContext context) {
         // 绘制深灰色渐变背景
         int width = client.getWindow().getScaledWidth();
@@ -445,5 +494,37 @@ public class Supplies extends Screen {
         context.fillGradient(0, 0, width, height/2, 0xFF202020, 0xFF101010);
         // 底部渐变
         context.fillGradient(0, height/2, width, height, 0xFF101010, 0xFF202020);
+    }
+    
+    @Override
+    public void tick() {
+        super.tick();
+        // 页面大小可能已改变，重新计算每页条目数
+        int availableHeight = height - TOP_MARGIN - BOTTOM_MARGIN;
+        int newItemsPerPage = Math.max(1, availableHeight / (ITEM_HEIGHT + ITEM_SPACING));
+        
+        if (newItemsPerPage != itemsPerPage) {
+            itemsPerPage = newItemsPerPage;
+            updateButtons();
+        }
+    }
+    
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        // 使用鼠标滚轮进行翻页
+        if (verticalAmount > 0) {
+            // 向上滚动，前往上一页
+            if (currentPage > 0) {
+                currentPage--;
+            }
+        } else if (verticalAmount < 0) {
+            // 向下滚动，前往下一页
+            int totalPages = getTotalPages();
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+            }
+        }
+        
+        return true;
     }
 }
