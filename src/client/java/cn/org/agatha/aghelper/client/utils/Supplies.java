@@ -44,8 +44,6 @@ public class Supplies extends Screen {
     public String facilityMaintainer = "";
     public String facilityDescription = "";
 
-    public ButtonWidget teleportButton;
-    
     // 分页相关
     private int currentPage = 0;
     private int itemsPerPage = 10;
@@ -58,7 +56,6 @@ public class Supplies extends Screen {
     
     // 弹窗相关
     private boolean showDetailPopup = false;
-    private ButtonWidget closePopupButton;
     
     // 搜索框
     private TextFieldWidget idInput;
@@ -71,30 +68,11 @@ public class Supplies extends Screen {
                 .build());
 
         // 添加一个输入框
-        idInput = new TextFieldWidget(textRenderer, 60, 10, width - 130, 20, null);
+        idInput = new TextFieldWidget(textRenderer, 60, 10, width - 100, 20, null);
         idInput.setPlaceholder(Text.of("输入ID或名称进行搜索"));
         idInput.setChangedListener(this::onSearchTextChanged);
         addDrawableChild(idInput);
-
-        // 添加一个传送按钮
-        teleportButton = ButtonWidget.builder(Text.of("传送"), button -> {
-                    assert MinecraftClient.getInstance().player != null;
-                    MinecraftClient.getInstance().player.networkHandler.sendChatCommand("supply " + facilityId);
-                    assert client != null;
-                    client.setScreen(null);
-                })
-                .dimensions(width - 60, 10, 40, 20)
-                .build();
-        teleportButton.active = false;
-        this.addDrawableChild(teleportButton);
         
-        // 添加关闭弹窗按钮
-        closePopupButton = ButtonWidget.builder(Text.of("关闭"), button -> showDetailPopup = false)
-                .dimensions(width / 2 - 20, height / 2 + 80, 40, 20)
-                .build();
-        closePopupButton.visible = false; // 初始时不可见
-        this.addDrawableChild(closePopupButton);
-
         // 计算每页可以显示的条目数量
         int availableHeight = height - TOP_MARGIN - BOTTOM_MARGIN;
         itemsPerPage = Math.max(1, availableHeight / (ITEM_HEIGHT + ITEM_SPACING));
@@ -232,22 +210,9 @@ public class Supplies extends Screen {
         nextButton.setX(width / 2 + 5);
         nextButton.setY(buttonY);
         
-        // 更新传送按钮位置
-        teleportButton.setX(width - 60);
-        teleportButton.setY(10);
-        
         // 更新搜索框大小
-        idInput.setWidth(width - 130);
-        
-        // 更新关闭弹窗按钮位置（如果弹窗正在显示）
-        if (showDetailPopup && hasInfo == 1) {
-            int popupWidth = 300;
-            int popupHeight = 200;
-            int popupX = (width - popupWidth) / 2;
-            int popupY = (height - popupHeight) / 2;
-            closePopupButton.setX(popupX + popupWidth / 2 - 20);
-            closePopupButton.setY(popupY + popupHeight - 30);
-        }
+        idInput.setWidth(width - 100);
+
     }
     
     private void clearFacilityButtons() {
@@ -347,15 +312,6 @@ public class Supplies extends Screen {
                     else{
                         this.hasInfo = 0;
                     }
-                    
-                    // 在主线程更新UI
-                    client.execute(() -> {
-                        if (hasInfo == 1) {
-                            MinecraftClient.getInstance().execute(() -> {
-                                teleportButton.active = true;
-                            });
-                        }
-                    });
                 }
             }
             catch (Exception e) {
@@ -368,9 +324,6 @@ public class Supplies extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderBackground(context);
         super.render(context, mouseX, mouseY, delta);
-        
-        // 控制关闭按钮的可见性
-        closePopupButton.visible = showDetailPopup && hasInfo == 1;
         
         // 渲染标题
         context.drawText(textRenderer, "资源设施列表", (width - textRenderer.getWidth("资源设施列表")) / 2, 35, 0xFFFFFFFF, false);
@@ -419,7 +372,7 @@ public class Supplies extends Screen {
         context.drawText(textRenderer, "坐标：" + facilityPosition, textX, textY + 44, 0xFFFFFFFF, false);
         
         // 备注信息
-        int maxWidth = popupWidth - 20;
+        int maxWidth = popupWidth - 60;
         List<OrderedText> wrappedTexts = textRenderer.wrapLines(Text.literal(facilityDescription), maxWidth);
         for (int i = 0; i < wrappedTexts.size(); i++) {
             context.drawText(textRenderer,
@@ -430,9 +383,21 @@ public class Supplies extends Screen {
                     textX + 40, textY + 56 + i * 12, 0xFFFFFFFF, false);
         }
         
-        // 更新关闭按钮位置
-        closePopupButton.setX(popupX + popupWidth / 2 - 20);
-        closePopupButton.setY(popupY + popupHeight - 30);
+        // 绘制传送按钮 (仅当资源可用时显示)
+        int teleportButtonX = popupX + popupWidth / 2 - 60;
+        int teleportButtonY = popupY + popupHeight - 30;
+        int closeButtonX = popupX + popupWidth / 2 + 10;
+        int closeButtonY = popupY + popupHeight - 30;
+        
+        // 绘制传送按钮
+        context.fill(teleportButtonX, teleportButtonY, teleportButtonX + 50, teleportButtonY + 20, 0xFF404040);
+        drawBorder(context, teleportButtonX, teleportButtonY, 50, 20, 0xFFFFFFFF);
+        context.drawCenteredTextWithShadow(textRenderer, "传送", teleportButtonX + 25, teleportButtonY + 5, 0xFFFFFFFF);
+        
+        // 绘制关闭按钮
+        context.fill(closeButtonX, closeButtonY, closeButtonX + 50, closeButtonY + 20, 0xFF404040);
+        drawBorder(context, closeButtonX, closeButtonY, 50, 20, 0xFFFFFFFF);
+        context.drawCenteredTextWithShadow(textRenderer, "关闭", closeButtonX + 25, closeButtonY + 5, 0xFFFFFFFF);
     }
     
     private void renderFacilityList(DrawContext context, int mouseX, int mouseY) {
@@ -525,16 +490,28 @@ public class Supplies extends Screen {
             int popupX = (width - popupWidth) / 2;
             int popupY = (height - popupHeight) / 2;
             
+            // 检查是否点击了传送按钮
+            int teleportButtonX = popupX + popupWidth / 2 - 60;
+            int teleportButtonY = popupY + popupHeight - 30;
+            if (mouseX >= teleportButtonX && mouseX <= teleportButtonX + 50 &&
+                mouseY >= teleportButtonY && mouseY <= teleportButtonY + 20) {
+                assert MinecraftClient.getInstance().player != null;
+                MinecraftClient.getInstance().player.networkHandler.sendChatCommand("supply " + facilityId);
+                assert client != null;
+                client.setScreen(null);
+                return true;
+            }
+            
             // 检查是否点击了关闭按钮
-            int buttonX = popupX + popupWidth / 2 - 20;
-            int buttonY = popupY + popupHeight - 30;
-            if (mouseX >= buttonX && mouseX <= buttonX + 40 &&
-                mouseY >= buttonY && mouseY <= buttonY + 20) {
+            int closeButtonX = popupX + popupWidth / 2 + 10;
+            int closeButtonY = popupY + popupHeight - 30;
+            if (mouseX >= closeButtonX && mouseX <= closeButtonX + 50 &&
+                mouseY >= closeButtonY && mouseY <= closeButtonY + 20) {
                 showDetailPopup = false;
                 return true;
             }
             
-            // 检查是否点击了弹窗区域（但不是关闭按钮）
+            // 检查是否点击了弹窗区域（但不是按钮）
             if (mouseX >= popupX && mouseX <= popupX + popupWidth &&
                 mouseY >= popupY && mouseY <= popupY + popupHeight) {
                 return true; // 消费点击事件，不传递给后面的内容
