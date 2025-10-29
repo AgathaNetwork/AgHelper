@@ -143,11 +143,11 @@ public class Supplies extends Screen {
                         teleportButton.active = true;
                     });
 
-                    context.drawText(textRenderer, "ID：" + facilityId, 160,60, 0xFFFFFF, false);
+                    context.drawText(textRenderer, "ID：" + facilityId, 160,60, 0xFFFFFFFF, false);
 
-                    context.drawText(textRenderer, "名称：" + facilityName, 160,80, 0xFFFFFF, false);
-                    context.drawText(textRenderer, "维护者：" + facilityMaintainer, 160,92, 0xFFFFFF, false);
-                    context.drawText(textRenderer, "坐标：" + facilityPosition, 160,104, 0xFFFFFF, false);
+                    context.drawText(textRenderer, "名称：" + facilityName, 160,80, 0xFFFFFFFF, false);
+                    context.drawText(textRenderer, "维护者：" + facilityMaintainer, 160,92, 0xFFFFFFFF, false);
+                    context.drawText(textRenderer, "坐标：" + facilityPosition, 160,104, 0xFFFFFFFF, false);
                     // 替换原有的备注显示代码
                     int maxWidth = width - 80;
                     List<OrderedText> wrappedTexts = textRenderer.wrapLines(Text.literal(facilityDescription), maxWidth);
@@ -155,27 +155,27 @@ public class Supplies extends Screen {
                     for (int i = 0; i < wrappedTexts.size(); i++) {
                         context.drawText(textRenderer,
                                 i == 0 ? "备注：" : "      ",
-                                160, 116 + i * 12, 0xFFFFFF, false);
+                                160, 116 + i * 12, 0xFFFFFFFF, false);
                         context.drawText(textRenderer,
                                 wrappedTexts.get(i),
-                                200, 116 + i * 12, 0xFFFFFF, false);
+                                200, 116 + i * 12, 0xFFFFFFFF, false);
                     }
 
                     // 计算控件整体高度
                     detailHeight = 100 + wrappedTexts.size() * 12;
                 }
                 else if (hasInfo == 2){
-                    context.drawText(textRenderer, "查询进行中", 160,60, 0xFFFFFF, false);
+                    context.drawText(textRenderer, "查询进行中", 160,60, 0xFFFFFFFF, false);
                     detailHeight = 80;
                 }
                 else if (hasInfo == 0){
-                    context.drawText(textRenderer, "暂无数据", 160,60, 0xFFFFFF, false);
+                    context.drawText(textRenderer, "暂无数据", 160,60, 0xFFFFFFFF, false);
                     detailHeight = 80;
                 }
                 else if (hasInfo == -1){
-                    context.drawText(textRenderer, "有多个候选项，请继续填写：", 160,60, 0xFFFFFF, false);
+                    context.drawText(textRenderer, "有多个候选项，请继续填写：", 160,60, 0xFFFFFFFF, false);
                     for (int i = 0; i < nameList.size(); i++){
-                        context.drawText(textRenderer, nameList.get(i), 160,80 + i * 12, 0xFFFFFF, false);
+                        context.drawText(textRenderer, nameList.get(i), 160,80 + i * 12, 0xFFFFFFFF, false);
                     }
                     detailHeight = 80 + nameList.size() * 12 + 20;
                 }
@@ -219,7 +219,9 @@ public class Supplies extends Screen {
 
         // 添加一个传送按钮
         teleportButton = ButtonWidget.builder(Text.of("传送"), button -> {
+                    assert MinecraftClient.getInstance().player != null;
                     MinecraftClient.getInstance().player.networkHandler.sendChatCommand("supply " + facilityId);
+                    assert client != null;
                     client.setScreen(null);
                 })
                 .dimensions(width - 60, 10, 40, 20)
@@ -362,16 +364,16 @@ public class Supplies extends Screen {
         for (int i = 0; i < centerListData.size(); i++) {
             context.drawText(textRenderer,
                     Text.literal(centerListData.get(i).content),
-                    60, i * 12 + offset, 0xFFFFFF, false);
+                    60, i * 12 + offset, 0xFFFFFFFF, false);
             if (Objects.equals(centerListData.get(i).status, "1")){
                 context.drawText(textRenderer,
                         Text.literal(centerListData.get(i).id).formatted(Formatting.GREEN),
-                        40, i * 12 + offset, 0xFFFFFF, false);
+                        40, i * 12 + offset, 0xFFFFFFFF, false);
             }
             else{
                 context.drawText(textRenderer,
                         Text.literal("×").formatted(Formatting.RED),
-                        40, i * 12 + offset, 0xFFFFFF, false);
+                        40, i * 12 + offset, 0xFFFFFFFF, false);
             }
         }
         offset += 12 * centerListData.size() + 20;
@@ -381,16 +383,16 @@ public class Supplies extends Screen {
         for (int i = 0; i < producerListData.size(); i++){
             context.drawText(textRenderer,
                     Text.literal(producerListData.get(i).content),
-                    60, i * 12 + offset, 0xFFFFFF, false);
+                    60, i * 12 + offset, 0xFFFFFFFF, false);
             if (Objects.equals(producerListData.get(i).status, "1")){
                 context.drawText(textRenderer,
                         Text.literal(producerListData.get(i).id).formatted(Formatting.GREEN),
-                        40, i * 12 + offset, 0xFFFFFF, false);
+                        40, i * 12 + offset, 0xFFFFFFFF, false);
             }
             else{
                 context.drawText(textRenderer,
                         Text.literal("×").formatted(Formatting.RED),
-                        40, i * 12 + offset, 0xFFFFFF, false);
+                        40, i * 12 + offset, 0xFFFFFFFF, false);
             }
         }
         offset += 12 * producerListData.size() + 20;
@@ -400,16 +402,16 @@ public class Supplies extends Screen {
         for (int i = 0; i < storageListData.size(); i++){
             context.drawText(textRenderer,
                     Text.literal(storageListData.get(i).content),
-                    60, i * 12 + offset, 0xFFFFFF, false);
+                    60, i * 12 + offset, 0xFFFFFFFF, false);
             if (Objects.equals(storageListData.get(i).status, "1")){
                 context.drawText(textRenderer,
                         Text.literal(storageListData.get(i).id).formatted(Formatting.GREEN),
-                        40, i * 12 + offset, 0xFFFFFF, false);
+                        40, i * 12 + offset, 0xFFFFFFFF, false);
             }
             else{
                 context.drawText(textRenderer,
                         Text.literal("×").formatted(Formatting.RED),
-                        40, i * 12 + offset, 0xFFFFFF, false);
+                        40, i * 12 + offset, 0xFFFFFFFF, false);
             }
         }
 
