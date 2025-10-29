@@ -254,6 +254,20 @@ public class Supplies extends Screen {
         return all;
     }
     
+    // 根据类型获取中文类别名称
+    private String getTypeDisplayName(String type) {
+        switch (type.toLowerCase()) {
+            case "center":
+                return "储存中心";
+            case "producer":
+                return "生产";
+            case "storage":
+                return "库存";
+            default:
+                return type;
+        }
+    }
+    
     private int getTotalPages() {
         int totalItems = filteredList.size();
         return (int) Math.ceil((double) totalItems / itemsPerPage);
@@ -437,20 +451,34 @@ public class Supplies extends Screen {
             int itemIndex = i - startIndex;
             int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
             
-            // 绘制背景
-            int backgroundColor = isMouseOverItem(mouseX, mouseY, itemY) ? 
-                0x80AAAAAA : 0x80222222;
+            // 绘制背景 (不可用设施使用不同的背景色)
+            boolean isAvailable = isFacilityAvailable(facility);
+            int backgroundColor;
+            if (!isAvailable) {
+                backgroundColor = isMouseOverItem(mouseX, mouseY, itemY) ?
+                    0x80666666 : 0x80111111; // 不可用设施的暗色调
+            } else {
+                backgroundColor = isMouseOverItem(mouseX, mouseY, itemY) ? 
+                    0x80AAAAAA : 0x80222222;
+            }
             context.fill(60, itemY, width - 60, itemY + ITEM_HEIGHT, backgroundColor);
             
             // 绘制边框 (修正宽度计算，应该与背景一致)
-            drawBorder(context, 60, itemY, width - 120, ITEM_HEIGHT, 0xFFFFFFFF);
+            int borderColor = isAvailable ? 0xFFFFFFFF : 0xFF888888; // 不可用设施使用灰白色边框
+            drawBorder(context, 60, itemY, width - 120, ITEM_HEIGHT, borderColor);
             
             // 绘制文本
-            context.drawText(textRenderer, facility.content, 65, itemY + 6, 0xFFFFFFFF, false);
+            int textColor = isAvailable ? 0xFFFFFFFF : 0xFF888888; // 不可用设施使用灰色文字
+            context.drawText(textRenderer, facility.content, 65, itemY + 6, textColor, false);
+            
+            // 绘制类别
+            String typeDisplay = getTypeDisplayName(facility.type);
+            int typeWidth = textRenderer.getWidth(typeDisplay);
+            context.drawText(textRenderer, typeDisplay, (width - typeWidth) / 2, itemY + 6, textColor, false);
             
             // 绘制状态
             int statusX = width - 80;
-            if (Objects.equals(facility.status, "1")){
+            if (isAvailable) {
                 context.drawText(textRenderer, "✓", statusX, itemY + 6, 0xFF00FF00, false);
             }
             else{
@@ -462,6 +490,11 @@ public class Supplies extends Screen {
     private boolean isMouseOverItem(int mouseX, int mouseY, int itemY) {
         return mouseX >= 60 && mouseX <= width - 60 && 
                mouseY >= itemY && mouseY <= itemY + ITEM_HEIGHT;
+    }
+    
+    // 检查设施是否可用
+    private boolean isFacilityAvailable(ListData facility) {
+        return Objects.equals(facility.status, "1");
     }
     
     public void drawBorder(DrawContext context, int x, int y, int width, int height, int color) {
@@ -566,8 +599,10 @@ public class Supplies extends Screen {
             int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
             
             // 检查是否点击了这个设施项（确保与渲染区域一致）
+            // 只有当设施可用时才允许点击查看详细信息
             if (mouseX >= 60 && mouseX <= width - 60 && 
-                mouseY >= itemY && mouseY <= itemY + ITEM_HEIGHT) {
+                mouseY >= itemY && mouseY <= itemY + ITEM_HEIGHT &&
+                Objects.equals(facility.status, "1")) {
                 showFacilityDetails(facility);
                 break;
             }
