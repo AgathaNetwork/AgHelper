@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class Supplies extends Screen {
     public Supplies() {
@@ -59,6 +60,9 @@ public class Supplies extends Screen {
     
     // 搜索框
     private TextFieldWidget idInput;
+    
+    // 搜索过滤后的列表
+    private List<ListData> filteredList = new ArrayList<>();
 
     @Override
     protected void init() {
@@ -137,6 +141,9 @@ public class Supplies extends Screen {
                         }
                         loaded = true;
                         
+                        // 初始化过滤列表为所有设施
+                        filteredList.addAll(getAllFacilities());
+                        
                         // 在主线程更新UI
                         client.execute(() -> {
                             updateButtons();
@@ -151,6 +158,12 @@ public class Supplies extends Screen {
     }
     
     private void onSearchTextChanged(String text) {
+        // 根据输入文本过滤列表
+        filterFacilities(text);
+        
+        // 重置到第一页
+        currentPage = 0;
+        
         // 判断是否是正整数
         if (isPositiveInteger(text)){
             // 输入了ID，按ID进行查询
@@ -198,6 +211,18 @@ public class Supplies extends Screen {
         }
     }
     
+    private void filterFacilities(String searchText) {
+        if (searchText == null || searchText.isEmpty()) {
+            // 如果搜索文本为空，则显示所有设施
+            filteredList = new ArrayList<>(getAllFacilities());
+        } else {
+            // 根据搜索文本过滤设施列表
+            filteredList = getAllFacilities().stream()
+                    .filter(facility -> facility.content.contains(searchText) || facility.id.contains(searchText))
+                    .collect(Collectors.toList());
+        }
+    }
+    
     private void updateButtons() {
         // 重新计算翻页按钮位置
         int buttonWidth = 60;
@@ -230,7 +255,7 @@ public class Supplies extends Screen {
     }
     
     private int getTotalPages() {
-        int totalItems = getAllFacilities().size();
+        int totalItems = filteredList.size();
         return (int) Math.ceil((double) totalItems / itemsPerPage);
     }
     
@@ -405,12 +430,10 @@ public class Supplies extends Screen {
         
         // 计算当前页的条目范围
         int startIndex = currentPage * itemsPerPage;
-        int endIndex = Math.min(startIndex + itemsPerPage, getAllFacilities().size());
-        
-        List<ListData> allFacilities = getAllFacilities();
+        int endIndex = Math.min(startIndex + itemsPerPage, filteredList.size());
         
         for (int i = startIndex; i < endIndex; i++) {
-            ListData facility = allFacilities.get(i);
+            ListData facility = filteredList.get(i);
             int itemIndex = i - startIndex;
             int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
             
@@ -535,12 +558,10 @@ public class Supplies extends Screen {
         
         // 计算当前页的条目范围
         int startIndex = currentPage * itemsPerPage;
-        int endIndex = Math.min(startIndex + itemsPerPage, getAllFacilities().size());
-        
-        List<ListData> allFacilities = getAllFacilities();
+        int endIndex = Math.min(startIndex + itemsPerPage, filteredList.size());
         
         for (int i = startIndex; i < endIndex; i++) {
-            ListData facility = allFacilities.get(i);
+            ListData facility = filteredList.get(i);
             int itemIndex = i - startIndex;
             int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
             
