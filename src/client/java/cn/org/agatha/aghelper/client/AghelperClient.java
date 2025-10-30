@@ -317,17 +317,8 @@ public class AghelperClient implements ClientModInitializer {
             if (!MinecraftClient.getInstance().getSession().getUsername().equals(username)) {
                 MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("快速登录设置的游戏ID与实际登录不符").formatted(Formatting.RED));
             }else{
-                // 判断登录的服务器地址
-                if (MinecraftClient.getInstance().getCurrentServerEntry() == null) {
-                    MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("当前世界不可用").formatted(Formatting.RED));
-                }else{
-                    if (!MinecraftClient.getInstance().getCurrentServerEntry().address.equals("agatha.org.cn")){
-                        MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("请先将登录入口切换至agatha.org.cn").formatted(Formatting.RED));
-                    }else{
-                        MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("正在执行快速登录").formatted(Formatting.AQUA));
-                        MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("login " + password);
-                    }
-                }
+                MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("正在执行快速登录").formatted(Formatting.AQUA));
+                MinecraftClient.getInstance().getNetworkHandler().sendChatCommand("login " + password);
             }
         }
     }
