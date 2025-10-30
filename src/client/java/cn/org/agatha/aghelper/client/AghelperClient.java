@@ -51,7 +51,7 @@ public class AghelperClient implements ClientModInitializer {
     private static final Path CONFIG_PATH = Path.of("config/aghelper.json");
     private static final String VERSION_CHECK_URL = "https://mc.agatha.org.cn/helper/latest";
     private static final String DOWNLOAD_URL_TEMPLATE = "https://mc.agatha.org.cn/helper/AgHelper-%s.jar";
-    private static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("aghelper", "test"));
+    private static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of("aghelper", "aghelper"));
 
     @Override
     public void onInitializeClient() {
