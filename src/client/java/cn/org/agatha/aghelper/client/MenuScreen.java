@@ -52,20 +52,10 @@ public class MenuScreen extends Screen {
         );
         addDrawableChild(ConnectionDiagnoseButton);
 
-        MenuRectWidget AutologinButton = new MenuRectWidget(
-                width/2-75, height/2, 70, 20,
-                Text.literal("快速登录"),
-                bookStack,
-                0xFF696969, // 绿色背景
-                () -> {
-                    assert this.client != null;
-                    this.client.setScreen(new Autologin());
-                }
-        );
-        addDrawableChild(AutologinButton);
 
+        // 补位：将后续按钮上移填补被删除的快速登录位置
         MenuRectWidget ShareInventoryButton = new MenuRectWidget(
-                width/2+5, height/2, 70, 20,
+                width/2-75, height/2, 70, 20,
                 Text.literal("背包查看"),
                 diamondStack,
                 0xFF808080, // 绿色背景
@@ -77,7 +67,7 @@ public class MenuScreen extends Screen {
         addDrawableChild(ShareInventoryButton);
 
         MenuRectWidget SuppliesButton = new MenuRectWidget(
-                width/2-75, height/2+30, 70, 20,
+                width/2+5, height/2, 70, 20,
                 Text.literal("资源管理"),
                 bookShelfStack,
                 0xFF808080, // 绿色背景
@@ -89,7 +79,7 @@ public class MenuScreen extends Screen {
         addDrawableChild(SuppliesButton);
 
         MenuRectWidget OnlineStatisticsButton = new MenuRectWidget(
-                width/2+5, height/2+30, 70, 20,
+                width/2-75, height/2+30, 70, 20,
                 Text.literal("在线统计"),
                 playerHeadStack,
                 0xFF696969, // 绿色背景
@@ -143,7 +133,7 @@ public class MenuScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderBackground(context);
+//        renderBackground(context);
         super.render(context, mouseX, mouseY, delta);
     }
 
@@ -160,3 +150,4 @@ public class MenuScreen extends Screen {
     }
 
 }
+
