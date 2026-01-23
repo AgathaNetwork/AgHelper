@@ -1,6 +1,5 @@
 package cn.org.agatha.aghelper.client;
 
-import cn.org.agatha.aghelper.client.utils.CreatePicture;
 import cn.org.agatha.aghelper.client.utils.OccupiedItemsHUD;
 import com.google.gson.Gson;
 import net.fabricmc.api.ClientModInitializer;
@@ -167,19 +166,51 @@ public class AghelperClient implements ClientModInitializer {
                         // 保存截图
                         screenshot.writeTo(screenshotPath);
 
+                        // screenshot 写入完成，构造绝对路径并调用本地 API
+                        String absolutePath = screenshotPath.toAbsolutePath().toString();
+
+                        // 通知玩家：截图已完成，正在尝试拉起 Minechat（调用本地 API）
+                        MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("截图已保存，正在尝试调用 Minechat 本地 API...").formatted(Formatting.AQUA)));
+
+                        // 在后台线程中执行 HTTP POST 请求到本地服务
+                        new Thread(() -> {
+                            HttpURLConnection conn = null;
+                            try {
+                                URL url = new URL("http://127.0.0.1:28188/pc/gallery/import");
+                                conn = (HttpURLConnection) url.openConnection();
+                                conn.setRequestMethod("POST");
+                                conn.setConnectTimeout(3000);
+                                conn.setReadTimeout(5000);
+                                conn.setDoOutput(true);
+                                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+                                // 构造 JSON，确保反斜杠被转义
+                                String json = "{\"path\":\"" + absolutePath.replace("\\", "\\\\") + "\"}";
+
+                                try (OutputStream os = conn.getOutputStream()) {
+                                    os.write(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                                }
+
+                                int code = conn.getResponseCode();
+                                if (code >= 200 && code < 300) {
+                                    MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("已向 Minechat 发送上传请求").formatted(Formatting.GREEN)));
+                                } else {
+                                    MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("本地返回错误: " + code + "，请检查 Minechat 是否已启动").formatted(Formatting.RED)));
+                                }
+
+                            } catch (Exception e) {
+                                // 连接失败或其他异常（例如服务未启动/未安装）
+                                MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("无法连接到 Minechat ，确认 Minechat 是否已启动。错误: " + e.getClass().getSimpleName()).formatted(Formatting.RED)));
+                            } finally {
+                                if (conn != null) {
+                                    conn.disconnect();
+                                }
+                            }
+                        }).start();
+
                     } catch (IOException ignored) {
                     }
                 });
-
-                String relativePathString = "gallery/" + fileName;
-
-                assert client.player != null;
-                int x = (int) Math.floor(client.player.getX());
-                int y = (int) Math.floor(client.player.getY());
-                int z = (int) Math.floor(client.player.getZ());
-                String worldName = client.player.getEntityWorld().getRegistryKey().getValue().getPath();
-                client.setScreen(new CreatePicture(relativePathString, x, y, z, worldName));
-
 
 
             }
