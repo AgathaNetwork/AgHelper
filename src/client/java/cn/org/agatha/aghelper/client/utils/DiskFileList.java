@@ -9,13 +9,18 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DiskFileList extends Screen {
     private final String userId;
@@ -29,6 +34,8 @@ public class DiskFileList extends Screen {
 
     private static final Gson GSON = new Gson();
     private static final String DISK_API_PREFIX = "http://127.0.0.1:28188/pc/disk/user/";
+    private static final String DISK_DOWNLOAD_PREFIX = "http://127.0.0.1:28188/pc/disk/";
+    private static final int DOWNLOAD_BTN_WIDTH = 40;
 
     private boolean loaded = false;
     private boolean loadError = false;
@@ -44,6 +51,9 @@ public class DiskFileList extends Screen {
     private static final int ITEM_SPACING = 5;
     private static final int TOP_MARGIN = 60;
     private static final int BOTTOM_MARGIN = 50;
+
+    // Per-file download state: 0=idle, 1=downloading, 2=completed, 3=failed
+    private final Map<String, Integer> downloadState = new HashMap<>();
 
     @Override
     protected void init() {
@@ -125,6 +135,69 @@ public class DiskFileList extends Screen {
         return String.format("%.1f %s", v, units[i]);
     }
 
+    private boolean isLitematic(FileData file) {
+        String name = file.name;
+        return name != null && name.toLowerCase().endsWith(".litematic");
+    }
+
+    private void downloadLitematic(FileData file) {
+        if (downloadState.getOrDefault(file.id, 0) != 0) return;
+        downloadState.put(file.id, 1);
+        new Thread(() -> {
+            try {
+                String encoded = URLEncoder.encode(file.id, StandardCharsets.UTF_8.name());
+                URL url = new URL(DISK_DOWNLOAD_PREFIX + encoded + "/download");
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(10000);
+                connection.setReadTimeout(30000);
+                connection.connect();
+                int responseCode = connection.getResponseCode();
+                if (responseCode == 200) {
+                    Path gameDir = client.runDirectory.toPath();
+                    Path schematicDir = gameDir.resolve("schematics");
+                    Files.createDirectories(schematicDir);
+
+                    String fileName = file.name;
+                    if (fileName == null || fileName.isBlank()) fileName = file.id + ".litematic";
+                    // Sanitize: remove path separators
+                    fileName = fileName.replace("/", "_").replace("\\", "_");
+                    final String savedName = fileName;
+                    Path target = schematicDir.resolve(savedName);
+
+                    try (InputStream is = connection.getInputStream()) {
+                        Files.copy(is, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+
+                    downloadState.put(file.id, 2);
+                    net.minecraft.client.MinecraftClient.getInstance().execute(() ->
+                        net.minecraft.client.MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(
+                            Text.literal("投影文件已保存到 schematics/" + savedName)
+                                .formatted(net.minecraft.util.Formatting.GREEN)
+                        )
+                    );
+                } else {
+                    downloadState.put(file.id, 3);
+                    net.minecraft.client.MinecraftClient.getInstance().execute(() ->
+                        net.minecraft.client.MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(
+                            Text.literal("下载失败: HTTP " + responseCode)
+                                .formatted(net.minecraft.util.Formatting.RED)
+                        )
+                    );
+                }
+            } catch (Exception e) {
+                downloadState.put(file.id, 3);
+                String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                net.minecraft.client.MinecraftClient.getInstance().execute(() ->
+                    net.minecraft.client.MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(
+                        Text.literal("下载失败: " + msg)
+                            .formatted(net.minecraft.util.Formatting.RED)
+                    )
+                );
+            }
+        }).start();
+    }
+
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderBackground(context);
@@ -168,15 +241,19 @@ public class DiskFileList extends Screen {
             int itemIndex = i - startIndex;
             int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
 
-            boolean hovered = mouseX >= 60 && mouseX <= width - 60 &&
+            boolean isLit = isLitematic(file);
+            int rightEdge = width - 60;
+
+            boolean hovered = mouseX >= 60 && mouseX <= rightEdge &&
                     mouseY >= itemY && mouseY <= itemY + ITEM_HEIGHT;
             int bgColor = hovered ? 0x80AAAAAA : 0x80222222;
-            context.fill(60, itemY, width - 60, itemY + ITEM_HEIGHT, bgColor);
-            drawBorder(context, 60, itemY, width - 120, ITEM_HEIGHT, 0xFFFFFFFF);
+            context.fill(60, itemY, rightEdge, itemY + ITEM_HEIGHT, bgColor);
+            drawBorder(context, 60, itemY, rightEdge - 60, ITEM_HEIGHT, 0xFFFFFFFF);
 
             // File name (truncated if too long)
             String name = file.name != null ? file.name : "未知文件";
-            int maxNameWidth = width - 200;
+            int nameRightLimit = isLit ? (rightEdge - DOWNLOAD_BTN_WIDTH - 80) : (rightEdge - 80);
+            int maxNameWidth = nameRightLimit - 70;
             String displayName = name;
             if (textRenderer.getWidth(displayName) > maxNameWidth) {
                 while (displayName.length() > 1 && textRenderer.getWidth(displayName + "...") > maxNameWidth) {
@@ -186,11 +263,68 @@ public class DiskFileList extends Screen {
             }
             context.drawText(textRenderer, displayName, 70, itemY + 6, 0xFFFFFFFF, false);
 
+            // Download button for litematic files
+            if (isLit) {
+                int state = downloadState.getOrDefault(file.id, 0);
+                int btnX = rightEdge - DOWNLOAD_BTN_WIDTH - 65;
+                boolean btnHovered = state == 0 && mouseX >= btnX && mouseX <= btnX + DOWNLOAD_BTN_WIDTH &&
+                        mouseY >= itemY + 2 && mouseY <= itemY + ITEM_HEIGHT - 2;
+                int btnColor;
+                String btnText;
+                if (state == 1) {
+                    btnColor = 0xFF333333;
+                    btnText = "...";
+                } else if (state == 2) {
+                    btnColor = 0xFF333333;
+                    btnText = "\u5B8C\u6210";
+                } else if (state == 3) {
+                    btnColor = 0xFF333333;
+                    btnText = "\u5931\u8D25";
+                } else {
+                    btnColor = btnHovered ? 0xFF696969 : 0xFF404040;
+                    btnText = "\u4E0B\u8F7D";
+                }
+                context.fill(btnX, itemY + 2, btnX + DOWNLOAD_BTN_WIDTH, itemY + ITEM_HEIGHT - 2, btnColor);
+                drawBorder(context, btnX, itemY + 2, DOWNLOAD_BTN_WIDTH, ITEM_HEIGHT - 4, state == 0 ? 0xFFFFFFFF : 0xFF666666);
+                int btnTextColor = state == 0 ? 0xFFFFFFFF : 0xFF888888;
+                int btnTextX = btnX + (DOWNLOAD_BTN_WIDTH - textRenderer.getWidth(btnText)) / 2;
+                context.drawText(textRenderer, btnText, btnTextX, itemY + 6, btnTextColor, false);
+            }
+
             // File size
             String sizeText = formatBytes(file.size);
             int sizeWidth = textRenderer.getWidth(sizeText);
-            context.drawText(textRenderer, sizeText, width - 70 - sizeWidth, itemY + 6, 0xFFAAAAAA, false);
+            context.drawText(textRenderer, sizeText, rightEdge - 10 - sizeWidth, itemY + 6, 0xFFAAAAAA, false);
         }
+    }
+
+    @Override
+    public boolean mouseClicked(Click click, boolean doubled) {
+        double mouseX = click.x();
+        double mouseY = click.y();
+        if (loaded && !files.isEmpty()) {
+            int startY = TOP_MARGIN;
+            int startIndex = currentPage * itemsPerPage;
+            int endIndex = Math.min(startIndex + itemsPerPage, files.size());
+            int rightEdge = width - 60;
+
+            for (int i = startIndex; i < endIndex; i++) {
+                FileData file = files.get(i);
+                int itemIndex = i - startIndex;
+                int itemY = startY + itemIndex * (ITEM_HEIGHT + ITEM_SPACING);
+
+                if (isLitematic(file)) {
+                    int btnX = rightEdge - DOWNLOAD_BTN_WIDTH - 65;
+                    int state = downloadState.getOrDefault(file.id, 0);
+                    if (state == 0 && mouseX >= btnX && mouseX <= btnX + DOWNLOAD_BTN_WIDTH &&
+                            mouseY >= itemY + 2 && mouseY <= itemY + ITEM_HEIGHT - 2) {
+                        downloadLitematic(file);
+                        return true;
+                    }
+                }
+            }
+        }
+        return super.mouseClicked(click, doubled);
     }
 
     @Override
