@@ -27,6 +27,7 @@ public class MenuScreen extends Screen {
         ItemStack compassStack = new ItemStack(Items.COMPASS);
         ItemStack playerHeadStack = new ItemStack(Items.PLAYER_HEAD);
         ItemStack paperStack = new ItemStack(Items.PAPER);
+        ItemStack chestStack = new ItemStack(Items.CHEST);
 
         MenuRectWidget MaterialsButton = new MenuRectWidget(
                 width/2-75, height/2-30, 70, 20,
@@ -90,6 +91,18 @@ public class MenuScreen extends Screen {
                 }
         );
         addDrawableChild(OnlineStatisticsButton);
+
+        MenuRectWidget DiskBrowserButton = new MenuRectWidget(
+                width/2+5, height/2+30, 70, 20,
+                Text.literal("网盘文件"),
+                chestStack,
+                0xFF808080,
+                () -> {
+                    assert this.client != null;
+                    this.client.setScreen(new DiskBrowser());
+                }
+        );
+        addDrawableChild(DiskBrowserButton);
 
 
         ScreenEvents.afterRender(this).register((_screen, drawContext, mouseX, mouseY, tickDelta) -> {
