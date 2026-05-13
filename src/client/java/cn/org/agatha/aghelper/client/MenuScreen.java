@@ -47,7 +47,7 @@ public class MenuScreen extends Screen {
                 width/2+5, height/2-30, 70, 20,
                 Text.literal("连接诊断"),
                 compassStack,
-                0xFF696969, // 绿色背景
+                0xFF808080, // 绿色背景
                 () -> {
                     assert this.client != null;
                     this.client.setScreen(new ConnectionDiagnose());
@@ -85,7 +85,7 @@ public class MenuScreen extends Screen {
                 width/2-75, height/2+30, 70, 20,
                 Text.literal("在线统计"),
                 playerHeadStack,
-                0xFF696969, // 绿色背景
+                0xFF808080, // 绿色背景
                 () -> {
                     assert this.client != null;
                     // 客户端执行/stat
