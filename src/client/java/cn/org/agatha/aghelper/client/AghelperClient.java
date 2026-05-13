@@ -2,6 +2,7 @@ package cn.org.agatha.aghelper.client;
 
 import cn.org.agatha.aghelper.client.network.BotNetworkClient;
 import cn.org.agatha.aghelper.client.utils.OccupiedItemsHUD;
+import cn.org.agatha.aghelper.client.utils.ScreenshotSentScreen;
 import com.google.gson.Gson;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -182,14 +183,14 @@ public class AghelperClient implements ClientModInitializer {
 
                                 int code = conn.getResponseCode();
                                 if (code >= 200 && code < 300) {
-                                    MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("已向 Minechat 发送上传请求").formatted(Formatting.GREEN)));
+                                    MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().setScreen(new ScreenshotSentScreen("已向 Minechat 发送上传请求", 0xFF00FF00)));
                                 } else {
-                                    MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("本地返回错误: " + code + "，请检查 Minechat 是否已启动").formatted(Formatting.RED)));
+                                    MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().setScreen(new ScreenshotSentScreen("本地返回错误: " + code + "，请检查 Minechat 是否已启动", 0xFFFF5555)));
                                 }
 
                             } catch (Exception e) {
                                 // 连接失败或其他异常（例如服务未启动/未安装）
-                                MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("无法连接到 Minechat ，确认 Minechat 是否已启动。错误: " + e.getClass().getSimpleName()).formatted(Formatting.RED)));
+                                MinecraftClient.getInstance().execute(() -> MinecraftClient.getInstance().setScreen(new ScreenshotSentScreen("无法连接到 Minechat，确认 Minechat 是否已启动。错误: " + e.getClass().getSimpleName(), 0xFFFF5555)));
                             } finally {
                                 if (conn != null) {
                                     conn.disconnect();
