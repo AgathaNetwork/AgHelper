@@ -19,8 +19,8 @@ public class BotManagerScreen extends Screen implements PacketHandler {
 
     private static final int ITEM_HEIGHT = 20;
     private static final int ITEM_SPACING = 1;
-    private static final int TOP_MARGIN = 35;
-    private static final int BOTTOM_MARGIN = 110;
+    private static final int TOP_MARGIN = 50;
+    private static final int BOTTOM_MARGIN = 85;
     private static final int LIST_X = 20;
 
     private List<BotInfo> bots = new ArrayList<>();
@@ -43,11 +43,10 @@ public class BotManagerScreen extends Screen implements PacketHandler {
     protected void init() {
         BotNetworkClient.setHandler(this);
 
-        // back button — matches MaterialsDash/Supplies style (no arrow)
+        // back button
         addDrawableChild(ButtonWidget.builder(Text.of("返回"), btn -> close())
                 .dimensions(10, 10, 40, 20).build());
 
-        // calculate items per page
         int availableHeight = height - TOP_MARGIN - BOTTOM_MARGIN;
         itemsPerPage = Math.max(1, availableHeight / (ITEM_HEIGHT + ITEM_SPACING));
 
@@ -55,42 +54,37 @@ public class BotManagerScreen extends Screen implements PacketHandler {
         int pageBtnWidth = 60;
         int pageBtnY = height - 25;
         prevButton = ButtonWidget.builder(Text.of("上一页"), btn -> {
-            if (currentPage > 0) {
-                currentPage--;
-                refreshEntries();
-            }
+            if (currentPage > 0) { currentPage--; refreshEntries(); }
         }).dimensions(width / 2 - pageBtnWidth - 5, pageBtnY, pageBtnWidth, 20).build();
 
         nextButton = ButtonWidget.builder(Text.of("下一页"), btn -> {
-            int totalPages = bots.isEmpty() ? 1 : (int) Math.ceil((double) bots.size() / itemsPerPage);
-            if (currentPage < totalPages - 1) {
-                currentPage++;
-                refreshEntries();
-            }
+            int tp = bots.isEmpty() ? 1 : (int) Math.ceil((double) bots.size() / itemsPerPage);
+            if (currentPage < tp - 1) { currentPage++; refreshEntries(); }
         }).dimensions(width / 2 + 5, pageBtnY, pageBtnWidth, 20).build();
 
         addDrawableChild(prevButton);
         addDrawableChild(nextButton);
 
-        // name input
-        int fieldY = height - 55;
-        nameField = new TextFieldWidget(client.textRenderer, 20, fieldY, 140, 18, Text.empty());
+        // action buttons + name field — all on one row
+        int rowY = height - 60;
+        addDrawableChild(ButtonWidget.builder(Text.literal("创建"), btn -> createBot())
+                .dimensions(20, rowY, 50, 18).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("删除"), btn -> deleteBot())
+                .dimensions(75, rowY, 50, 18).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("重命名"), btn -> renameBot())
+                .dimensions(130, rowY, 60, 18).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("传送去"), btn -> tpToBot())
+                .dimensions(195, rowY, 55, 18).build());
+        addDrawableChild(ButtonWidget.builder(Text.literal("拉过来"), btn -> tpHere())
+                .dimensions(255, rowY, 55, 18).build());
+
+        int listRight = width - 20;
+        int fieldX = 315;
+        int fieldWidth = Math.max(80, listRight - fieldX);
+        nameField = new TextFieldWidget(client.textRenderer, fieldX, rowY, fieldWidth, 18, Text.empty());
         nameField.setMaxLength(16);
         nameField.setPlaceholder(Text.literal("Bot自定义名"));
         addDrawableChild(nameField);
-
-        // action buttons
-        int btnY = height - 75;
-        addDrawableChild(ButtonWidget.builder(Text.literal("创建"), btn -> createBot())
-                .dimensions(20, btnY, 50, 18).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("删除"), btn -> deleteBot())
-                .dimensions(75, btnY, 50, 18).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("重命名"), btn -> renameBot())
-                .dimensions(130, btnY, 60, 18).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("传送去"), btn -> tpToBot())
-                .dimensions(195, btnY, 55, 18).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("拉过来"), btn -> tpHere())
-                .dimensions(255, btnY, 55, 18).build());
 
         refreshEntries();
         BotNetworkClient.requestList();
@@ -114,28 +108,28 @@ public class BotManagerScreen extends Screen implements PacketHandler {
         // title
         context.drawText(tr, Text.literal("Bot管理 - 你创建的假人"), width / 2 - 80, 10, 0xFFFFFF, true);
 
-        // empty state
-        if (bots.isEmpty()) {
-            context.drawText(tr, Text.literal("(暂无Bot，输入名称后点创建)"), LIST_X + 5, TOP_MARGIN + 4, 0xFFAAAAAA, true);
+        // selected info — top center
+        if (selectedIndex >= 0 && selectedIndex < bots.size()) {
+            BotInfo sel = bots.get(selectedIndex);
+            String info = "选中: " + sel.name() + "  [" + dimLabel(sel.dim()) + "]  " + (int) sel.x() + "," + (int) sel.y() + "," + (int) sel.z();
+            context.drawTextWithShadow(tr, info, (width - tr.getWidth(info)) / 2, 28, 0xFF00FF00);
         }
 
         // page info
         if (!bots.isEmpty()) {
             int totalPages = (int) Math.ceil((double) bots.size() / itemsPerPage);
             String pageText = "第 " + (currentPage + 1) + "/" + totalPages + " 页";
-            context.drawTextWithShadow(tr, pageText, (width - tr.getWidth(pageText)) / 2, height - 100, 0xFFFFFFFF);
+            context.drawTextWithShadow(tr, pageText, (width - tr.getWidth(pageText)) / 2, height - 80, 0xFFFFFFFF);
         }
 
-        // selected info
-        if (selectedIndex >= 0 && selectedIndex < bots.size()) {
-            BotInfo sel = bots.get(selectedIndex);
-            String info = "选中: " + sel.name();
-            context.drawText(tr, Text.literal(info), 20, height - 80, 0xFF00FF00, true);
+        // empty state
+        if (bots.isEmpty()) {
+            context.drawText(tr, Text.literal("(暂无Bot，输入名称后点创建)"), LIST_X + 5, TOP_MARGIN + 4, 0xFFAAAAAA, true);
         }
 
         // status
         if (!statusText.isEmpty()) {
-            context.drawText(tr, Text.literal(statusText), 20, height - 35, statusColor, true);
+            context.drawText(tr, Text.literal(statusText), 20, height - 40, statusColor, true);
         }
     }
 
@@ -147,7 +141,6 @@ public class BotManagerScreen extends Screen implements PacketHandler {
         if (selectedIndex >= bots.size()) {
             selectedIndex = bots.isEmpty() ? -1 : 0;
         }
-        // clamp page
         int totalPages = bots.isEmpty() ? 1 : (int) Math.ceil((double) bots.size() / itemsPerPage);
         if (currentPage >= totalPages) {
             currentPage = Math.max(0, totalPages - 1);
@@ -202,55 +195,31 @@ public class BotManagerScreen extends Screen implements PacketHandler {
 
     private void createBot() {
         String name = nameField.getText().trim();
-        if (name.isEmpty()) {
-            statusText = "请输入Bot名称";
-            statusColor = 0xFFFF5555;
-            return;
-        }
+        if (name.isEmpty()) { statusText = "请输入Bot名称"; statusColor = 0xFFFF5555; return; }
         BotNetworkClient.createBot(name);
         nameField.setText("");
     }
 
     private void deleteBot() {
-        if (selectedIndex < 0 || selectedIndex >= bots.size()) {
-            statusText = "请先选择一个Bot";
-            statusColor = 0xFFFF5555;
-            return;
-        }
+        if (selectedIndex < 0 || selectedIndex >= bots.size()) { statusText = "请先选择一个Bot"; statusColor = 0xFFFF5555; return; }
         BotNetworkClient.removeBot(bots.get(selectedIndex).name());
     }
 
     private void renameBot() {
-        if (selectedIndex < 0 || selectedIndex >= bots.size()) {
-            statusText = "请先选择一个Bot";
-            statusColor = 0xFFFF5555;
-            return;
-        }
+        if (selectedIndex < 0 || selectedIndex >= bots.size()) { statusText = "请先选择一个Bot"; statusColor = 0xFFFF5555; return; }
         String newName = nameField.getText().trim();
-        if (newName.isEmpty()) {
-            statusText = "请输入新名称";
-            statusColor = 0xFFFF5555;
-            return;
-        }
+        if (newName.isEmpty()) { statusText = "请输入新名称"; statusColor = 0xFFFF5555; return; }
         BotNetworkClient.renameBot(bots.get(selectedIndex).name(), newName);
         nameField.setText("");
     }
 
     private void tpToBot() {
-        if (selectedIndex < 0 || selectedIndex >= bots.size()) {
-            statusText = "请先选择一个Bot";
-            statusColor = 0xFFFF5555;
-            return;
-        }
+        if (selectedIndex < 0 || selectedIndex >= bots.size()) { statusText = "请先选择一个Bot"; statusColor = 0xFFFF5555; return; }
         BotNetworkClient.teleportToBot(bots.get(selectedIndex).name());
     }
 
     private void tpHere() {
-        if (selectedIndex < 0 || selectedIndex >= bots.size()) {
-            statusText = "请先选择一个Bot";
-            statusColor = 0xFFFF5555;
-            return;
-        }
+        if (selectedIndex < 0 || selectedIndex >= bots.size()) { statusText = "请先选择一个Bot"; statusColor = 0xFFFF5555; return; }
         BotNetworkClient.teleportBotHere(bots.get(selectedIndex).name());
     }
 
@@ -264,9 +233,7 @@ public class BotManagerScreen extends Screen implements PacketHandler {
         if (newItemsPerPage != itemsPerPage) {
             itemsPerPage = newItemsPerPage;
             int totalPages = bots.isEmpty() ? 1 : (int) Math.ceil((double) bots.size() / itemsPerPage);
-            if (currentPage >= totalPages) {
-                currentPage = Math.max(0, totalPages - 1);
-            }
+            if (currentPage >= totalPages) { currentPage = Math.max(0, totalPages - 1); }
             refreshEntries();
         }
     }
@@ -274,16 +241,10 @@ public class BotManagerScreen extends Screen implements PacketHandler {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         if (verticalAmount > 0) {
-            if (currentPage > 0) {
-                currentPage--;
-                refreshEntries();
-            }
+            if (currentPage > 0) { currentPage--; refreshEntries(); }
         } else if (verticalAmount < 0) {
-            int totalPages = bots.isEmpty() ? 1 : (int) Math.ceil((double) bots.size() / itemsPerPage);
-            if (currentPage < totalPages - 1) {
-                currentPage++;
-                refreshEntries();
-            }
+            int tp = bots.isEmpty() ? 1 : (int) Math.ceil((double) bots.size() / itemsPerPage);
+            if (currentPage < tp - 1) { currentPage++; refreshEntries(); }
         }
         return true;
     }
