@@ -1,5 +1,6 @@
 package cn.org.agatha.aghelper.client;
 
+import cn.org.agatha.aghelper.client.network.BotNetworkClient;
 import cn.org.agatha.aghelper.client.utils.OccupiedItemsHUD;
 import com.google.gson.Gson;
 import net.fabricmc.api.ClientModInitializer;
@@ -53,6 +54,9 @@ public class AghelperClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        // 注册Bot网络通信
+        BotNetworkClient.register();
+
         // 注册HUD
         HudRenderCallback.EVENT.register(OccupiedItemsHUD.getInstance());
         

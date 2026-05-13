@@ -2,6 +2,7 @@ package cn.org.agatha.aghelper.client;
 
 import cn.org.agatha.aghelper.client.elements.MenuRectWidget;
 import cn.org.agatha.aghelper.client.utils.*;
+import cn.org.agatha.aghelper.client.network.BotNetworkClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -28,6 +29,7 @@ public class MenuScreen extends Screen {
         ItemStack playerHeadStack = new ItemStack(Items.PLAYER_HEAD);
         ItemStack paperStack = new ItemStack(Items.PAPER);
         ItemStack chestStack = new ItemStack(Items.CHEST);
+        ItemStack armorStandStack = new ItemStack(Items.ARMOR_STAND);
 
         MenuRectWidget MaterialsButton = new MenuRectWidget(
                 width/2-75, height/2-30, 70, 20,
@@ -103,6 +105,19 @@ public class MenuScreen extends Screen {
                 }
         );
         addDrawableChild(DiskBrowserButton);
+
+        MenuRectWidget BotManagerButton = new MenuRectWidget(
+                width/2-75, height/2+60, 70, 20,
+                Text.literal("Bot管理"),
+                armorStandStack,
+                0xFF808080,
+                () -> {
+                    assert this.client != null;
+                    BotNetworkClient.clearHandler();
+                    this.client.setScreen(new BotManagerScreen());
+                }
+        );
+        addDrawableChild(BotManagerButton);
 
 
         ScreenEvents.afterRender(this).register((_screen, drawContext, mouseX, mouseY, tickDelta) -> {
