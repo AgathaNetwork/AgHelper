@@ -79,7 +79,7 @@ public class AghelperClient implements ClientModInitializer {
 
         // 如果配置文件不存在
         if (!CONFIG_PATH.toFile().exists()) {
-            saveConfig(new ConfigData(GLFW.GLFW_KEY_UP, "", GLFW.GLFW_KEY_RIGHT));
+            saveConfig(new ConfigData(GLFW.GLFW_KEY_UP, "", GLFW.GLFW_KEY_RIGHT, true));
         }
         // 读取配置文件
         ConfigData config = loadConfig();
@@ -114,11 +114,17 @@ public class AghelperClient implements ClientModInitializer {
                 } else {
                     logMessage("当前已是最新版本");
 
-                    MinecraftClient.getInstance().execute(() -> {
-                        ServerInfo serverInfo = new ServerInfo("Agatha纯净生存", "cd.agatha.org.cn", ServerInfo.ServerType.OTHER);
-                        // 连接到服务器
-                        ConnectScreen.connect(MinecraftClient.getInstance().currentScreen, MinecraftClient.getInstance(), ServerAddress.parse("cd.agatha.org.cn"), serverInfo,  false, null);
-                    });
+                    // 读取最新配置，检查是否开启自动进服
+                    ConfigData latestConfig = loadConfig();
+                    if (latestConfig.autoJoinServer()) {
+                        logMessage("自动进服已开启，正在连接…");
+                        MinecraftClient.getInstance().execute(() -> {
+                            ServerInfo serverInfo = new ServerInfo("Agatha纯净生存", "cd.agatha.org.cn", ServerInfo.ServerType.OTHER);
+                            ConnectScreen.connect(MinecraftClient.getInstance().currentScreen, MinecraftClient.getInstance(), ServerAddress.parse("cd.agatha.org.cn"), serverInfo, false, null);
+                        });
+                    } else {
+                        logMessage("自动进服已关闭，跳过自动连接");
+                    }
                 }
             } catch (Exception e) {
                 logMessage("检查更新时出错: " + e.getMessage());
@@ -206,8 +212,32 @@ public class AghelperClient implements ClientModInitializer {
             }
         });
 
+        // 游戏关闭时保存当前按键绑定到配置文件
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+            ConfigData latest = loadConfig();
+            int menuCode = getKeyCodeFromBinding(menuKeyBinding);
+            int pictureCode = getKeyCodeFromBinding(createPictureKeyBinding);
+            if (menuCode >= 0 && pictureCode >= 0) {
+                saveConfig(new ConfigData(menuCode, latest.password(), pictureCode, latest.autoJoinServer()));
+                logMessage("已保存当前按键配置");
+            }
+        });
+
         // 注册HUD渲染回调
         // 已经在上面注册过了，删除重复的注册
+    }
+
+    /**
+     * 从 KeyBinding 对象提取当前绑定的按键码
+     */
+    private static int getKeyCodeFromBinding(KeyBinding binding) {
+        try {
+            String translationKey = binding.getBoundKeyTranslationKey();
+            InputUtil.Key key = InputUtil.fromTranslationKey(translationKey);
+            return key.getCode();
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     /**
@@ -324,12 +354,33 @@ public class AghelperClient implements ClientModInitializer {
         }
     }
 
-    static ConfigData loadConfig() {
+    /** 获取当前 menuKeyBinding 的实时按键码（可能被系统界面修改过） */
+    public static int getCurrentMenuKeyCode() {
+        return getKeyCodeFromBinding(menuKeyBinding);
+    }
+
+    /** 获取当前 createPictureKeyBinding 的实时按键码 */
+    public static int getCurrentPictureKeyCode() {
+        return getKeyCodeFromBinding(createPictureKeyBinding);
+    }
+
+    public static ConfigData loadConfig() {
         try {
-            return GSON.fromJson(new FileReader(CONFIG_PATH.toFile()), ConfigData.class);
+            File configFile = CONFIG_PATH.toFile();
+            if (configFile.exists()) {
+                String raw = new String(java.nio.file.Files.readAllBytes(configFile.toPath()), java.nio.charset.StandardCharsets.UTF_8);
+                ConfigData config = GSON.fromJson(raw, ConfigData.class);
+                // 旧配置迁移：没有 autoJoinServer 字段时，默认为 true
+                if (!raw.contains("\"autoJoinServer\"")) {
+                    config = new ConfigData(config.menuShortcutKey(), config.password(), config.createPictureKey(), true);
+                    saveConfig(config);
+                }
+                return config;
+            }
         } catch (Exception e) {
-            return new ConfigData(GLFW.GLFW_KEY_UP, "", GLFW.GLFW_KEY_RIGHT);
+            // fall through to default
         }
+        return new ConfigData(GLFW.GLFW_KEY_UP, "", GLFW.GLFW_KEY_RIGHT, true);
     }
 
     public static void updateKeyBinding(KeyInput key, String keyName) {
@@ -347,7 +398,12 @@ public class AghelperClient implements ClientModInitializer {
             createPictureKeyBinding.setBoundKey(InputUtil.fromKeyCode(key));
             KeyBinding.updateKeysByCode();
         }
-        saveConfig(new ConfigData(menuShortcutKey, "", createPictureKey));
+        saveConfig(new ConfigData(menuShortcutKey, "", createPictureKey, config.autoJoinServer()));
+    }
+
+    public static void setAutoJoinServer(boolean enabled) {
+        ConfigData config = loadConfig();
+        saveConfig(new ConfigData(config.menuShortcutKey(), config.password(), config.createPictureKey(), enabled));
     }
 
     private static void saveConfig(ConfigData config) {
@@ -361,5 +417,5 @@ public class AghelperClient implements ClientModInitializer {
         }
     }
 
-    private record ConfigData(int menuShortcutKey, String password, int createPictureKey) {}
+    public record ConfigData(int menuShortcutKey, String password, int createPictureKey, boolean autoJoinServer) {}
 }

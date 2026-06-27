@@ -6,6 +6,7 @@ import cn.org.agatha.aghelper.client.network.BotNetworkClient;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.text.Text;
@@ -118,6 +119,15 @@ public class MenuScreen extends Screen {
                 }
         );
         addDrawableChild(BotManagerButton);
+
+        // 右下角齿轮图标 → 快捷键设置
+        addDrawableChild(ButtonWidget.builder(
+                Text.literal("⚙"),
+                button -> {
+                    assert this.client != null;
+                    this.client.setScreen(new SettingScreen());
+                }
+        ).dimensions(width - 30, height - 42, 20, 20).build());
 
 
         ScreenEvents.afterRender(this).register((_screen, drawContext, mouseX, mouseY, tickDelta) -> {
